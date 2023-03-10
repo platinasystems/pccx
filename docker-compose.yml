@@ -78,6 +78,7 @@ x-custom:
   TLSX_SUBSCRIBERS_FILE: /tlsx/subscribers
   TLSX_SUBSCRIPTIONS_FILE: /tlsx/subscriptions
 - &tlsx-fet "${TLSX_FET:-10.100.1.1}"
+- &tlsx-image ${TLSX_IMAGE:-platinadownload.auctacognitio.com/tlsx}
 - &tlsx-verbose "-verbose=${TLSX_VERBOSE:-false}"
 - &kafka-environment
   # The basic auth password to access on UI Landoop ( username is kafka )
@@ -139,34 +140,6 @@ x-custom-data:
 - &postgres-data ./postgres/data:/var/lib/postgresql/data
 - &prometheus-data ./prometheus/data:/prometheus
 - &redis-data ./redis/data:/data
-
-x-custom-image:
-- &platina-registry ${PLATINA_REGISTRY?e.g. platinadownload.auctacognitio.com}
-- &platina-release ${PLATINA_RELEASE?e.g. release-branch.pcc2.1}
-- &adminer-image ${ADMINER_IMAGE:-adminer}
-- &api-registry-image ${API_REGISTRY_IMAGE:-${PLATINA_REGISTRY?}/registry:${PLATINA_RELEASE?}}
-- &alertmanager-image ${ALERTMANAGER_IMAGE:-prom/alertmanager}
-- &cadvisor-image ${CADVISOR_IMAGE:-zcube/cadvisor}
-- &gateway-image ${GATEWAY_IMAGE:-${PLATINA_REGISTRY?}/gateway:${PLATINA_RELEASE?}}
-- &kafka-image ${KAFKA_IMAGE:-landoop/fast-data-dev}
-- &key-manager-image ${KEY_MANAGER_IMAGE:-${PLATINA_REGISTRY?}/key-manager:${PLATINA_RELEASE?}}
-- &mailer-image ${MAILER_IMAGE:-${PLATINA_REGISTRY?}/mailer:${PLATINA_RELEASE?}}
-- &minio-image ${MINIO_IMAGE:-minio/minio}
-- &maas-image ${MAILER_IMAGE:-${PLATINA_REGISTRY?}/maas:${PLATINA_RELEASE?}}
-- &monitor-image ${MAILER_IMAGE:-${PLATINA_REGISTRY?}/monitor:${PLATINA_RELEASE?}}
-- &node-exporter-image ${NODE_EXPORTER_IMAGE:-prom/node-exporter}
-- &pccserver-image ${PCCSERVER_IMAGE:-${PLATINA_REGISTRY?}/pccserver:${PLATINA_RELEASE?}}
-- &pcc-ui-image ${PCC_UI_IMAGE:-${PLATINA_REGISTRY?}/pcc-ui:${PLATINA_RELEASE?}}
-- &phone-home-image ${PHONE_HOME_IMAGE:-${PLATINA_REGISTRY?}/phone-home:${PLATINA_RELEASE?}}
-- &platina-executor-image ${PLATINA_EXECUTOR_IMAGE:-${PLATINA_REGISTRY?}/platina-executor:${PLATINA_RELEASE?}}
-- &platina-monitor-image ${PLATINA_MONITOR_IMAGE:-${PLATINA_REGISTRY?}/platina-monitor:${PLATINA_RELEASE?}}
-- &postgres-image ${POSTGRES_IMAGE:-postgres}
-- &prometheus-image ${PROMETHEUS_IMAGE:-prom/prometheus}
-- &pushgateway-image ${PUSHGATEWAY_IMAGE:-prom/pushgateway}
-- &redis-image ${REDIS_IMAGE:-redis:5.0.3-alpine}
-- &security-image ${SECURITY_IMAGE:-${PLATINA_REGISTRY?}/security:${PLATINA_RELEASE?}}
-- &tlsx-image ${TLSX_IMAGE:-${PLATINA_REGISTRY}/tlsx}
-- &user-management-image ${USER_MANAGEMENT_IMAGE:-${PLATINA_REGISTRY?}/user-management:${PLATINA_RELEASE?}}
 
 x-custom-logs:
 - &api-registry-logs ./api-registry/logs:/home/logs
@@ -266,14 +239,14 @@ services:
 
   redis:
     container_name: redis
-    image: *redis-image
+    image: ${REDIS_IMAGE:-redis:5.0.3-alpine}
     network_mode: "service:bet"
     volumes:
     - *redis-data
 
   postgres:
     container_name: postgres
-    image: *postgres-image
+    image: ${POSTGRES_IMAGE:-postgres}
     restart: *restart
     network_mode: "service:bet"
     configs: [ postgres_config ]
@@ -289,7 +262,7 @@ services:
 
   prometheus:
     container_name: prometheus
-    image: *prometheus-image
+    image: ${PROMETHEUS_IMAGE:-prom/prometheus}
     restart: *restart
     network_mode: "service:fet"
     configs: [ prometheus_config ]
@@ -304,13 +277,13 @@ services:
   adminer:
     container_name: adminer
     depends_on: [ postgres ]
-    image: *adminer-image
+    image: ${ADMINER_IMAGE:-adminer}
     restart: *restart
     network_mode: "service:bet"
 
   kafka:
     container_name: kafka
-    image: *kafka-image
+    image: ${KAFKA_IMAGE:-landoop/fast-data-dev}
     restart: *restart
     network_mode: "service:fet"
     platform: linux/amd64
@@ -335,7 +308,7 @@ services:
   # aka. storage
   minio:
     container_name: minio
-    image: *minio-image
+    image: ${MINIO_IMAGE:-minio/minio}
     restart: *restart
     network_mode: "service:bet"
     environment:
@@ -364,7 +337,7 @@ services:
 
   cadvisor:
     container_name: cadvisor
-    image: *cadvisor-image
+    image: ${CADVISOR_IMAGE:-zcube/cadvisor}
     restart: *restart
     network_mode: "service:bet"
     labels:
@@ -385,7 +358,7 @@ services:
 
   node-exporter:
     container_name: node-exporter
-    image: *node-exporter-image
+    image: ${NODE_EXPORTER_IMAGE:-prom/node-exporter}
     restart: *restart
     network_mode: "service:bet"
     volumes:
@@ -400,7 +373,7 @@ services:
 
   alertmanager:
     container_name: alertmanager
-    image: *alertmanager-image
+    image: ${ALERTMANAGER_IMAGE:-prom/alertmanager}
     restart: *restart
     network_mode: "service:bet"
     labels:
@@ -414,7 +387,7 @@ services:
 
   pushgateway:
     container_name: pushgateway
-    image: *pushgateway-image
+    image: ${PUSHGATEWAY_IMAGE:-prom/pushgateway}
     restart: *restart
     network_mode: "service:bet"
     labels:
@@ -424,7 +397,7 @@ services:
   api-registry:
     container_name: api-registry
     depends_on: [ postgres ]
-    image: *api-registry-image
+    image: ${API_REGISTRY_IMAGE:-platinadownload.auctacognitio.com/registry:release-branch.pcc2.1}
     restart: *restart
     network_mode: "service:bet"
     platform: linux/amd64
@@ -437,7 +410,7 @@ services:
 
   gateway:
     container_name: gateway
-    image: *gateway-image
+    image: ${GATEWAY_IMAGE:-platinadownload.auctacognitio.com/gateway:release-branch.pcc2.1}
     restart: *restart
     network_mode: "service:bet"
     platform: linux/amd64
@@ -465,7 +438,7 @@ services:
     - kafka
     - postgres
     - minio
-    image: *pccserver-image
+    image: ${PCCSERVER_IMAGE:-platinadownload.auctacognitio.com/pccserver:release-branch.pcc2.1}
     restart: *restart
     network_mode: "service:bet"
     platform: linux/amd64
@@ -515,7 +488,7 @@ services:
   mailer:
     container_name: mailer
     depends_on: [ postgres ]
-    image: *mailer-image
+    image: ${MAILER_IMAGE:-platinadownload.auctacognitio.com/mailer:release-branch.pcc2.1}
     restart: *restart
     network_mode: "service:bet"
     platform: linux/amd64
@@ -539,7 +512,7 @@ services:
     - postgres
     - mailer
     - minio
-    image: *user-management-image
+    image: ${USER_MANAGEMENT_IMAGE:-platinadownload.auctacognitio.com/user-management:release-branch.pcc2.1}
     restart: *restart
     network_mode: "service:bet"
     platform: linux/amd64
@@ -565,7 +538,7 @@ services:
   security:
     container_name: security
     depends_on: [ postgres ]
-    image: *security-image
+    image: ${SECURITY_IMAGE:-platinadownload.auctacognitio.com/security:release-branch.pcc2.1}
     restart: *restart
     network_mode: "service:bet"
     platform: linux/amd64
@@ -587,7 +560,7 @@ services:
   key-manager:
     container_name: key-manager
     depends_on: [ postgres ]
-    image: *key-manager-image
+    image: ${KEY_MANAGER_IMAGE:-platinadownload.auctacognitio.com/key-manager:release-branch.pcc2.1}
     restart: *restart
     network_mode: "service:bet"
     platform: linux/amd64
@@ -613,7 +586,7 @@ services:
     depends_on:
     - redis
     - kafka
-    image: *monitor-image
+    image: ${MAILER_IMAGE:-platinadownload.auctacognitio.com/monitor:release-branch.pcc2.1}
     restart: *restart
     network_mode: "service:bet"
     platform: linux/amd64
@@ -635,7 +608,7 @@ services:
   platina-executor:
     container_name: platina-executor
     depends_on: [ pccserver ]
-    image: *platina-executor-image
+    image: ${PLATINA_EXECUTOR_IMAGE:-platinadownload.auctacognitio.com/platina-executor:release-branch.pcc2.1}
     restart: *restart
     network_mode: "service:bet"
     platform: linux/amd64
@@ -678,7 +651,7 @@ services:
     - alertmanager
     - pushgateway
     - mailer
-    image: *platina-monitor-image
+    image: ${PLATINA_MONITOR_IMAGE:-platinadownload.auctacognitio.com/platina-monitor:release-branch.pcc2.1}
     restart: *restart
     network_mode: "service:bet"
     platform: linux/amd64
@@ -708,7 +681,7 @@ services:
 
   maas:
     container_name: maas
-    image: *maas-image
+    image: ${MAILER_IMAGE:-platinadownload.auctacognitio.com/maas:release-branch.pcc2.1}
     restart: *restart
     network_mode: "service:bet"
     platform: linux/amd64
@@ -740,7 +713,7 @@ services:
   phone-home:
     container_name: phone-home
     depends_on: [ "api-registry" ]
-    image: *phone-home-image
+    image: ${PHONE_HOME_IMAGE:-platinadownload.auctacognitio.com/phone-home:release-branch.pcc2.1}
     restart: *restart
     network_mode: "service:bet"
     platform: linux/amd64
@@ -766,7 +739,7 @@ services:
 
   pcc-ui:
     container_name: pcc-ui
-    image: *pcc-ui-image
+    image: ${PCC_UI_IMAGE:-platinadownload.auctacognitio.com/pcc-ui:release-branch.pcc2.1}
     restart: *restart
     network_mode: "service:bet"
     platform: linux/amd64

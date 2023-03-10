@@ -2,28 +2,23 @@ This deploys a *pcc* docker stack.
 
 First run `./init` to enter prompted passwords.
 
-Next edit `.env` to specify the Platina image registry and release tag.
-
-- `PLATINA_REGISTRY` [e.g. `platinadownload.auctacognitio.com`]
-- `PLATINA_RELEASE` [e.g. `release-branch.pcc2.1`]
-
-And override any of these environment variable (defaults).
+Then override any of these (defaults) within `.env`.
 
 - `ADMINER_IMAGE` (`adminer`)
 - `ALERTMANAGER_IMAGE` (`prom/alertmanager`)
 - `ANSIBLE_VERBOSE_LEVEL` (`0`)
 - `ANSIBLE_VERBOSE_LEVEL` (`0`)
 - `API_REGISTRY_DEBUG_ENABLED` (`false`)
-- `API_REGISTRY_IMAGE` (`${PLATINA_REGISTRY}/registry:${PLATINA_RELEASE}`)
+- `API_REGISTRY_IMAGE` (`<registry>/registry:<release>`)
 - `CADVISOR_IMAGE` (`zcube/cadvisor`)
 - `GATEWAY_DEBUG_ENABLED` (`false`)
-- `GATEWAY_IMAGE` (`${PLATINA_REGISTRY}/gateway:${PLATINA_RELEASE}`)
+- `GATEWAY_IMAGE` (`<registry>/gateway:<release>`)
 - `GATEWAY_PORT` (`443`)
 - `KAFKA_IMAGE` (`landoop/fast-data-dev`)
 - `KEYMANAGER_DB` (`key_manager`)
 - `KEYMANAGER_DB_USER` (`jwtuser`)
 - `KEYMANAGER_DEBUG_ENABLED` (`false`)
-- `KEY_MANAGER_IMAGE` (`${PLATINA_REGISTRY}/key-manager:${PLATINA_RELEASE}`)
+- `KEY_MANAGER_IMAGE` (`<registry>/key-manager:<release>`)
 - `MAAS_ADDITIONAL_ARGUMENTS` (``)
 - `MAAS_CONFIG_BRANCH` (`master`)
 - `MAAS_DB` (`maas`)
@@ -31,23 +26,23 @@ And override any of these environment variable (defaults).
 - `MAAS_DEBUG_ENABLED` (`false`)
 - `MAILER_CONFIG_BRANCH` (`master`)
 - `MAILER_DEBUG_ENABLED` (`false`)
-- `MAILER_IMAGE` (`${PLATINA_REGISTRY}/maas:${PLATINA_RELEASE}`)
-- `MAILER_IMAGE` (`${PLATINA_REGISTRY}/mailer:${PLATINA_RELEASE}`)
-- `MAILER_IMAGE` (`${PLATINA_REGISTRY}/monitor:${PLATINA_RELEASE}`)
+- `MAILER_IMAGE` (`<registry>/maas:<release>`)
+- `MAILER_IMAGE` (`<registry>/mailer:<release>`)
+- `MAILER_IMAGE` (`<registry>/monitor:<release>`)
 - `MAILER_USER` (`pcc_notifications@platinasystems.com`)
 - `MINIO_IMAGE` (`minio/minio`)
 - `MONITOR_DEBUG_ENABLED` (`false`)
 - `NODE_EXPORTER_IMAGE` (`prom/node-exporter`)
-- `PCCSERVER_IMAGE` (`${PLATINA_REGISTRY}/pccserver:${PLATINA_RELEASE}`)
+- `PCCSERVER_IMAGE` (`<registry>/pccserver:<release>`)
 - `PCCUI_DEBUG_ENABLED` (`false`)
 - `PCC_DB` (`pccdb`)
 - `PCC_DB_USER` (`pcc`)
 - `PCC_DEBUG_ENABLED` (`false`)
-- `PCC_UI_IMAGE` (`${PLATINA_REGISTRY}/pcc-ui:${PLATINA_RELEASE}`)
+- `PCC_UI_IMAGE` (`<registry>/pcc-ui:<release>`)
 - `PHONEHOME_DB` (`phone_home`)
 - `PHONEHOME_DB_USER` (`phuser`)
 - `PHONEHOME_DEBUG_ENABLED` (`false`)
-- `PHONE_HOME_IMAGE` (`${PLATINA_REGISTRY}/phone-home:${PLATINA_RELEASE}`)
+- `PHONE_HOME_IMAGE` (`<registry>/phone-home:<release>`)
 - `PLATINAEXECUTOR_CONFIG_BRANCH` (`master`)
 - `PLATINAEXECUTOR_DB` (`executordb`)
 - `PLATINAEXECUTOR_DB_USER` (`executor`)
@@ -56,8 +51,8 @@ And override any of these environment variable (defaults).
 - `PLATINAMONITOR_DB` (`platina_monitor`)
 - `PLATINAMONITOR_DB_USER` (`monitor`)
 - `PLATINAMONITOR_DEBUG_ENABLED` (`false`)
-- `PLATINA_EXECUTOR_IMAGE` (`${PLATINA_REGISTRY}/platina-executor:${PLATINA_RELEASE}`)
-- `PLATINA_MONITOR_IMAGE` (`${PLATINA_REGISTRY}/platina-monitor:${PLATINA_RELEASE}`)
+- `PLATINA_EXECUTOR_IMAGE` (`<registry>/platina-executor:<release>`)
+- `PLATINA_MONITOR_IMAGE` (`<registry>/platina-monitor:<release>`)
 - `POSTGRES_DB` (`postgres`)
 - `POSTGRES_IMAGE` (`postgres`)
 - `POSTGRES_USER` (`postgres`)
@@ -69,24 +64,24 @@ And override any of these environment variable (defaults).
 - `SECURITY_DB` (`jwt`)
 - `SECURITY_DB_USER` (`jwtuser`)
 - `SECURITY_DEBUG_ENABLED` (`false`)
-- `SECURITY_IMAGE` (`${PLATINA_REGISTRY}/security:${PLATINA_RELEASE}`)
+- `SECURITY_IMAGE` (`<registry>/security:<release>`)
 - `TLSX_BEP` (`8004`)
 - `TLSX_BET` (`10.100.0.1`)
 - `TLSX_BEV` (`10.100.0.0/24`)
 - `TLSX_FEP` (`8003`)
 - `TLSX_FET` (`10.100.1.1`)
 - `TLSX_FEV` (`10.100.1.0/24`)
-- `TLSX_IMAGE` (`${PLATINA_REGISTRY}/tlsx:${PLATINA_RELEASE}`)
+- `TLSX_IMAGE` (`<registry>/tlsx`)
 - `TLSX_VERBOSE` (`false`)
 - `USERMANAGEMENT_DB` (`jwt`)
 - `USERMANAGEMENT_DB_USER` (`jwtuser`)
 - `USERMANAGEMENT_DEBUG_ENABLED` (`false`)
-- `USER_MANAGEMENT_IMAGE` (`${PLATINA_REGISTRY}/user-management:${PLATINA_RELEASE}`)
+- `USER_MANAGEMENT_IMAGE` (`<registry>/user-management:<release>`)
 
 Now login to the Platina registry,
 
 ```console
-$ docker login PLATINA_REGISTRY
+$ docker login <registry>
 ```
 
 Finally,
