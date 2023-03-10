@@ -1,0 +1,799 @@
+version: '3.4'
+
+configs:
+  alertmanager_config:
+    file: ./alertmanager/config.yml
+  gateway_config:
+    file: ./gateway/config.yml
+  key_manager_config:
+    file: ./key-manager/config.yml
+  mailer_config:
+    file: ./mailer/config.yml
+  maas_config:
+    file: ./maas/config.yml
+  monitor_config:
+    file: ./monitor/config.yml
+  pccserver_config:
+    file: ./pccserver/config.yml
+  pcc_ui_config:
+    file: ./pcc-ui/config.yml
+  phone_home_config:
+    file: ./phone-home/config.yml
+  platina_executor_config:
+    file: ./platina-executor/config.yml
+  platina_monitor_config:
+    file: ./platina-monitor/config.yml
+  postgres_config:
+    file: ./postgres/config.sql
+  prometheus_config:
+    file: ./prometheus/config.yml
+  security_config:
+    file: ./security/config.yml
+  user_management_config:
+    file: ./user-management/config.yml
+
+secrets:
+  gateway_password:
+    file: ./gateway/password.txt
+  key_manager_password:
+    file: ./key-manager/password.txt
+  maas_password:
+    file: ./maas/password.txt
+  mailer_password:
+    file: ./mailer/password.txt
+  minio_config:
+    file: ./minio/config.env
+  pccserver_password:
+    file: ./pccserver/password.txt
+  phone_home_password:
+    file: ./phone-home/password.txt
+  platina_executor_password:
+    file: ./platina-executor/password.txt
+  platina_monitor_password:
+    file: ./platina-monitor/password.txt
+  postgres_password:
+    file: ./postgres/password.txt
+  security_password:
+    file: ./security/password.txt
+  security_admin_password:
+    file: ./security/admin/password.txt
+  ssh_id:
+    file: ./ssh/id_rsa
+  tlsx_cert:
+    file: ./tlsx/cert.pem
+  tlsx_key:
+    file: ./tlsx/key.pem
+  user_management_password:
+    file: ./user-management/password.txt
+
+x-custom:
+- &tlsx-tap-cap
+  cap_add: [ ALL ]
+  devices: [ /dev/net/tun ]
+  privileged: true
+  user: "0:0"
+- &tlsx-environment
+  TLSX_CERT_FILE: /run/secrets/tlsx_cert
+  TLSX_KEY_FILE: /run/secrets/tlsx_key
+  TLSX_SUBSCRIBERS_FILE: /tlsx/subscribers
+  TLSX_SUBSCRIPTIONS_FILE: /tlsx/subscriptions
+- &tlsx-fet "${TLSX_FET:-10.100.1.1}"
+- &tlsx-verbose "-verbose=${TLSX_VERBOSE:-false}"
+- &kafka-environment
+  # The basic auth password to access on UI Landoop ( username is kafka )
+  # FIXME <https://caddyserver.com/docs/caddyfile/directives/basicauth>
+  # The amount of data to retain in the log for each topic partition. By
+  # default, log size is unlimited -> set as 500MB
+  KAFKA_LOG_RETENTION_BYTES: 536870912
+  # The number of ms to keep the summary message before deleting it.
+  KAFKA_SUMMARY_RETENTION_MS: 120000
+  # The number of hours to keep a log file before deleting it. The default
+  # value is 86400000 ms (7 days) -> set as 2 h
+  KAFKA_LOG_RETENTION_MS: 7200000
+  # The message max size. The default value is 1000012 bytes (976 KB) ->
+  # set as 15728640 bytes (15 MB)
+  KAFKA_MESSAGE_MAX_BYTES: 15728640
+  ADV_HOST: *tlsx-fet
+  KAFKA_ZOOKEEPER_CONNECT: *tlsx-fet
+  ZOOKEEPER_HOST: *tlsx-fet
+  # Disable Running tests so the cluster starts faster
+  RUNTESTS: 0
+  # Enable running 5 file source connectors that bring application logs
+  # into Kafka topics
+  FORWARDLOGS: 1
+  # Do not create sea_vessel_position_reports, nyc_yellow_taxi_trip_data,
+  # reddit_posts topics with sample Avro records.
+  SAMPLEDATA: 0
+  # Disable JMX - enabled by default on ports 9581 - 9585.
+  DISABLE_JMX: 1
+  # Expose service configuration in the UI. Useful to see how Kafka is setup.
+  BROWSECONFIGS: 1
+  # Enable supervisor web interface on port 9001 (adjust via
+  # SUPERVISORWEB_PORT) in order to control services, run tail -f, etc.
+  SUPERVISORWEB: 1
+  #CONNECT_HEAP: 3G
+  W_PERIOD_SECS: 5
+  W_ITERATIONS: 180
+  CONNECT_PORT: 0
+  REST_PORT: 0
+- &minio-environment
+  MINIO_CONFIG_ENV_FILE: "/run/secrets/minio_config"
+- &postgres-environment
+  POSTGRES_DB: ${POSTGRES_DB:-postgres}
+  POSTGRES_DB_HOST: localhost
+  POSTGRES_USER: ${POSTGRES_USER:-postgres}
+  POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+- &pub-gpg-key ${PUB_GPG_KEY:-./phone-home/platina_pubkey.asc}:/root/.gnupg/pubkey.asc:ro
+- &pub-ssh-id ./ssh/id_rsa.pub:/root/.ssh/id_rsa.pub:ro
+- &restart ${RESTART:-unless-stopped}
+- &secret-ssh-id
+  source: ssh_id
+  target: /root/.ssh/id_rsa
+
+x-custom-data:
+- &alertmanager-data ./alertmanager/data:/alertmanager
+- &kafka-data ./kafka/data:/data
+- &minio-data ./minio/data:/mnt/data
+- &pccserver-data ./pccserver/data:/srv/pcc
+- &phone-home-data ./phone-home/data:/mnt/data
+- &postgres-data ./postgres/data:/var/lib/postgresql/data
+- &prometheus-data ./prometheus/data:/prometheus
+- &redis-data ./redis/data:/data
+
+x-custom-image:
+- &platina-registry ${PLATINA_REGISTRY?e.g. platinadownload.auctacognitio.com}
+- &platina-release ${PLATINA_RELEASE?e.g. release-branch.pcc2.1}
+- &adminer-image ${ADMINER_IMAGE:-adminer}
+- &api-registry-image ${API_REGISTRY_IMAGE:-${PLATINA_REGISTRY?}/registry:${PLATINA_RELEASE?}}
+- &alertmanager-image ${ALERTMANAGER_IMAGE:-prom/alertmanager}
+- &cadvisor-image ${CADVISOR_IMAGE:-zcube/cadvisor}
+- &gateway-image ${GATEWAY_IMAGE:-${PLATINA_REGISTRY?}/gateway:${PLATINA_RELEASE?}}
+- &kafka-image ${KAFKA_IMAGE:-landoop/fast-data-dev}
+- &key-manager-image ${KEY_MANAGER_IMAGE:-${PLATINA_REGISTRY?}/key-manager:${PLATINA_RELEASE?}}
+- &mailer-image ${MAILER_IMAGE:-${PLATINA_REGISTRY?}/mailer:${PLATINA_RELEASE?}}
+- &minio-image ${MINIO_IMAGE:-minio/minio}
+- &maas-image ${MAILER_IMAGE:-${PLATINA_REGISTRY?}/maas:${PLATINA_RELEASE?}}
+- &monitor-image ${MAILER_IMAGE:-${PLATINA_REGISTRY?}/monitor:${PLATINA_RELEASE?}}
+- &node-exporter-image ${NODE_EXPORTER_IMAGE:-prom/node-exporter}
+- &pccserver-image ${PCCSERVER_IMAGE:-${PLATINA_REGISTRY?}/pccserver:${PLATINA_RELEASE?}}
+- &pcc-ui-image ${PCC_UI_IMAGE:-${PLATINA_REGISTRY?}/pcc-ui:${PLATINA_RELEASE?}}
+- &phone-home-image ${PHONE_HOME_IMAGE:-${PLATINA_REGISTRY?}/phone-home:${PLATINA_RELEASE?}}
+- &platina-executor-image ${PLATINA_EXECUTOR_IMAGE:-${PLATINA_REGISTRY?}/platina-executor:${PLATINA_RELEASE?}}
+- &platina-monitor-image ${PLATINA_MONITOR_IMAGE:-${PLATINA_REGISTRY?}/platina-monitor:${PLATINA_RELEASE?}}
+- &postgres-image ${POSTGRES_IMAGE:-postgres}
+- &prometheus-image ${PROMETHEUS_IMAGE:-prom/prometheus}
+- &pushgateway-image ${PUSHGATEWAY_IMAGE:-prom/pushgateway}
+- &redis-image ${REDIS_IMAGE:-redis:5.0.3-alpine}
+- &security-image ${SECURITY_IMAGE:-${PLATINA_REGISTRY?}/security:${PLATINA_RELEASE?}}
+- &tlsx-image ${TLSX_IMAGE:-${PLATINA_REGISTRY}/tlsx}
+- &user-management-image ${USER_MANAGEMENT_IMAGE:-${PLATINA_REGISTRY?}/user-management:${PLATINA_RELEASE?}}
+
+x-custom-logs:
+- &api-registry-logs ./api-registry/logs:/home/logs
+- &gateway-logs ./gateway/logs:/home/logs
+- &key-manager-logs ./key-manager/logs:/home/logs
+- &maas-logs ./maas/logs:/home/logs
+- &mailer-logs ./mailer/logs:/home/logs
+- &monitor-logs ./monitor/logs:/home/logs
+- &pcc-ui-logs ./pcc-ui/logs:/usr/local/apache2/logs
+- &pccserver-logs ./pccserver/logs:/home/logs
+- &phone-home-logs ./phone-home/logs:/home/logs
+- &platina-executor-logs ./platina-executor/logs:/home/logs
+- &platina-monitor-logs ./platina-monitor/logs:/home/logs
+- &postgres-logs ./postgres/logs:/var/lib/postgresql/logs
+- &security-logs ./security/logs:/home/logs
+- &user-management-logs ./user-management/logs:/home/logs
+
+services:
+  bex:
+    container_name: bex
+    image: *tlsx-image
+    restart: *restart
+    networks: [ ben ]
+    ports:
+    - ${TLSX_BEP:-8004}:8003
+    environment:
+      << : *tlsx-environment
+    secrets:
+    - tlsx_cert
+    - tlsx_key
+    volumes: [ "bex_tlsx:/tlsx" ]
+    command:
+    - *tlsx-verbose
+    - start
+    - exchange
+    - ${TLSX_BEV:-10.100.0.0/24}
+
+  fex:
+    container_name: fex
+    image: *tlsx-image
+    restart: *restart
+    ports:
+    - ${TLSX_FEP:-8003}:8003
+    secrets:
+    - tlsx_cert
+    - tlsx_key
+    volumes: [ "fex_tlsx:/tlsx" ]
+    environment:
+      << : *tlsx-environment
+    command:
+    - *tlsx-verbose
+    - start
+    - exchange
+    - ${TLSX_FEV:-10.100.1.0/24}
+
+  bet:
+    container_name: bet
+    depends_on: [ bex ]
+    image: *tlsx-image
+    restart: *restart
+    networks: [ ben ]
+    ports:
+    - ${GATEWAY_PORT:-443}:9999
+    << : *tlsx-tap-cap
+    secrets:
+    - tlsx_cert
+    - tlsx_key
+    environment:
+      << : *tlsx-environment
+    command:
+    - *tlsx-verbose
+    - start
+    - tap
+    - -a
+    - ${TLSX_BET:-10.100.0.1}
+    - "@bex"
+
+  fet:
+    container_name: fet
+    depends_on: [ fex ]
+    image: *tlsx-image
+    restart: *restart
+    networks: [ default, ben ]
+    << : *tlsx-tap-cap
+    secrets:
+    - tlsx_cert
+    - tlsx_key
+    environment:
+      << : *tlsx-environment
+    command:
+    - *tlsx-verbose
+    - start
+    - tap
+    - -a
+    - *tlsx-fet
+    - "@fex"
+
+  redis:
+    container_name: redis
+    image: *redis-image
+    network_mode: "service:bet"
+    volumes:
+    - *redis-data
+
+  postgres:
+    container_name: postgres
+    image: *postgres-image
+    restart: *restart
+    network_mode: "service:bet"
+    configs: [ postgres_config ]
+    environment:
+      << : *postgres-environment
+    secrets: [ postgres_password ]
+    volumes:
+    - *postgres-logs
+    - ./postgres/backup:/var/lib/postgresql/backup
+    - ./postgres/entrypoint.sh:/docker-entrypoint.sh:ro
+    - ./postgres/wals:/var/lib/postgresql/wals
+    command: postgres -c config_file=/config.sql
+
+  prometheus:
+    container_name: prometheus
+    image: *prometheus-image
+    restart: *restart
+    network_mode: "service:fet"
+    configs: [ prometheus_config ]
+    volumes:
+    - *prometheus-data
+    - &prometheus-rules ./prometheus/rules:/etc/prometheus/rules/
+    command: >-
+      --config.file=/config.yml
+      --web.enable-lifecycle
+      --storage.tsdb.retention.time=15d
+
+  adminer:
+    container_name: adminer
+    depends_on: [ postgres ]
+    image: *adminer-image
+    restart: *restart
+    network_mode: "service:bet"
+
+  kafka:
+    container_name: kafka
+    image: *kafka-image
+    restart: *restart
+    network_mode: "service:fet"
+    platform: linux/amd64
+    env_file: kafka/fixme.env
+    environment:
+      << : *kafka-environment
+    volumes:
+    - *kafka-data
+    - ./kafka/conf/log4j.properties:/opt/landoop/kafka/etc/kafka/log4j.properties:ro
+    - ./kafka/conf/schema-registry.properties:/run/schema-registry/schema-registry.properties:ro
+    - ./kafka/conf/09-topic-config.conf:/etc/supervisord.d/09-topic-config.conf:ro
+    - ./kafka/conf/topic-config.sh:/opt/landoop/kafka/bin/topic-config.sh
+    - ./kafka/patch/zookeeper-3.5.9-patch.jar:/opt/landoop/kafka/share/java/kafka/zookeeper-3.5.9.jar
+    - ./kafka/patch/zookeeper-3.5.9-patch.jar:/opt/landoop/kafka/share/java/schema-registry/zookeeper-3.5.8.jar
+    - ./kafka/patch/zookeeper-3.5.9-patch.jar:/opt/landoop/kafka/share/java/landoop-common/zookeeper-3.5.7.jar
+    - ./kafka/patch/zookeeper-3.5.9-patch.jar:/opt/landoop/connectors/third-party/kafka-connect-s3/zookeeper-3.5.8.jar
+    - ./kafka/patch/zookeeper-jute-3.5.9.jar:/opt/landoop/kafka/share/java/kafka/zookeeper-jute-3.5.9.jar
+    - ./kafka/patch/zookeeper-jute-3.5.9.jar:/opt/landoop/kafka/share/java/schema-registry/zookeeper-jute-3.5.8.jar
+    - ./kafka/patch/zookeeper-jute-3.5.9.jar:/opt/landoop/kafka/share/java/landoop-common/zookeeper-jute-3.5.7.jar
+    - ./kafka/patch/zookeeper-jute-3.5.9.jar:/opt/landoop/connectors/third-party/kafka-connect-s3/zookeeper-jute-3.5.8.jar
+
+  # aka. storage
+  minio:
+    container_name: minio
+    image: *minio-image
+    restart: *restart
+    network_mode: "service:bet"
+    environment:
+      << : *minio-environment
+    secrets:
+    - minio_config
+    - source: tlsx_cert
+      target: /mnt/certs/public.crt
+    - source: tlsx_key
+      target: /mnt/certs/private.key
+    volumes:
+    - *minio-data
+    healthcheck:
+      interval: 30s
+      timeout: 2s
+      test:
+      - "CMD"
+      - "curl"
+      - "-f"
+      - "-k"
+      - "http://127.0.0.1:9000/minio/health/live"
+    command:
+    - server
+    - --certs-dir=/mnt/certs
+    - /mnt/data
+
+  cadvisor:
+    container_name: cadvisor
+    image: *cadvisor-image
+    restart: *restart
+    network_mode: "service:bet"
+    labels:
+      org.label-schema.group: "monitoring"
+    privileged: true
+    devices:
+    - /dev/kmsg:/dev/kmsg
+    volumes:
+    - /:/rootfs:ro
+    - /sys:/sys:ro
+    - /var/lib/docker:/var/lib/docker:ro
+    - /etc/machine-id:/etc/machine-id:ro
+    - /var/lib/dbus/machine-id:/var/lib/dbus/machine-id:ro
+    command:
+    - '--docker_only=true'
+    - '--housekeeping_interval=15s'
+    - '--port=8085'
+
+  node-exporter:
+    container_name: node-exporter
+    image: *node-exporter-image
+    restart: *restart
+    network_mode: "service:bet"
+    volumes:
+    - /proc:/host/proc:ro
+    - /sys:/host/sys:ro
+    - /:/rootfs:ro
+    command:
+    - '--path.procfs=/host/proc'
+    - '--path.rootfs=/rootfs'
+    - '--path.sysfs=/host/sys'
+    - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+
+  alertmanager:
+    container_name: alertmanager
+    image: *alertmanager-image
+    restart: *restart
+    network_mode: "service:bet"
+    labels:
+      org.label-schema.group: "monitoring"
+    configs: [ alertmanager_config ]
+    volumes:
+    - *alertmanager-data
+    command:
+    - '--config.file=/config.yml'
+    - '--storage.path=/alertmanager'
+
+  pushgateway:
+    container_name: pushgateway
+    image: *pushgateway-image
+    restart: *restart
+    network_mode: "service:bet"
+    labels:
+      org.label-schema.group: "monitoring"
+    command: [ '--web.enable-admin-api' ]
+
+  api-registry:
+    container_name: api-registry
+    depends_on: [ postgres ]
+    image: *api-registry-image
+    restart: *restart
+    network_mode: "service:bet"
+    platform: linux/amd64
+    environment:
+      << : *postgres-environment
+      SERVICE_DEBUG_ENABLED: ${API_REGISTRY_DEBUG_ENABLED:-false}
+    secrets: [ postgres_password ]
+    volumes:
+    - *api-registry-logs
+
+  gateway:
+    container_name: gateway
+    image: *gateway-image
+    restart: *restart
+    network_mode: "service:bet"
+    platform: linux/amd64
+    configs: [ gateway_config ]
+    env_file: gateway/fixme.env
+    environment:
+      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_CONFIG_BRANCH: master
+      SERVICE_DEBUG_ENABLED: ${GATEWAY_DEBUG_ENABLED:-false}
+      KEYSTORE_PASSWORD_FILE: /run/secrets/gateway_password
+      PLATINA_ITERATIONS: 180
+      PLATINA_PERIOD_SECS: 5
+    secrets:
+    - gateway_password
+    - source: tlsx_cert
+      target: /home/certs/server.crt
+    - source: tlsx_key
+      target: /home/certs/server.key
+    volumes:
+    - *gateway-logs
+
+  pccserver:
+    container_name: pccserver
+    depends_on:
+    - kafka
+    - postgres
+    - minio
+    image: *pccserver-image
+    restart: *restart
+    network_mode: "service:bet"
+    platform: linux/amd64
+    privileged: true
+    cap_add:
+    - SYS_PTRACE
+    - NET_ADMIN
+    - SYS_ADMIN
+    configs: [ pccserver_config ]
+    devices: [ /dev/net/tun ]
+    env_file:
+    - kafka/fixme.env
+    - pccserver/fixme.env
+    environment:
+      << : *kafka-environment
+      << : *minio-environment
+      << : *postgres-environment
+      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_CONFIG_BRANCH: master
+      SERVICE_DB: ${PCC_DB:-pccdb}
+      SERVICE_DB_HOST: localhost
+      SERVICE_DB_USER: ${PCC_DB_USER:-pcc}
+      SERVICE_DB_PASSWORD_FILE: /run/secrets/pccserver_password
+      SERVICE_DEBUG_ENABLED: ${PCC_DEBUG_ENABLED:-false}
+      ANSIBLE_VERBOSITY: ${ANSIBLE_VERBOSE_LEVEL:-0}
+      PLATINA_ITERATIONS: 90
+      PLATINA_PERIOD_SECS: 3
+      MINIO_ITERATIONS: 90
+      MINIO_PERIOD_SECS: 3
+      KAFKA_ITERATIONS: 180
+      KAFKA_PERIOD_SECS: 3
+    secrets:
+    - minio_config
+    - postgres_password
+    - *secret-ssh-id
+    volumes:
+    - *pccserver-data
+    - *pccserver-logs
+    - *pub-ssh-id
+    - ops-playbooks:/home/ops
+    - orchestration-playbooks:/home/orchestration
+    - kubespray2-playbooks:/home/kubespray
+    - kubespray-playbooks:/home/turnkey-kubespray
+    - pccserver-playbooks:/home/ansible
+    - pccserver-supervisor-config:/etc/supervisor/conf.d
+
+  mailer:
+    container_name: mailer
+    depends_on: [ postgres ]
+    image: *mailer-image
+    restart: *restart
+    network_mode: "service:bet"
+    platform: linux/amd64
+    cap_add: [ SYS_PTRACE ]
+    configs: [ mailer_config ]
+    env_file: mailer/fixme.env
+    environment:
+      << : *postgres-environment
+      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_USER: ${MAILER_USER:-pcc_notifications@platinasystems.com}
+      SERVICE_PASSWORD_FILE: /run/secrets/mailer_password
+      SERVICE_DEBUG_ENABLED: ${MAILER_DEBUG_ENABLED:-false}
+      SERVICE_CONFIG_BRANCH: ${MAILER_CONFIG_BRANCH:-master}
+    secrets: [ postgres_password ]
+    volumes:
+    - *mailer-logs
+
+  user-management:
+    container_name: user-management
+    depends_on:
+    - postgres
+    - mailer
+    - minio
+    image: *user-management-image
+    restart: *restart
+    network_mode: "service:bet"
+    platform: linux/amd64
+    configs: [ user_management_config ]
+    env_file: user-management/fixme.env
+    environment:
+      << : *minio-environment
+      << : *postgres-environment
+      MINIO_ITERATIONS: 90
+      MINIO_PERIOD_SECS: 3
+      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_DB: ${USERMANAGEMENT_DB:-jwt}
+      SERVICE_DB_HOST: localhost
+      SERVICE_DB_USER: ${USERMANAGEMENT_DB_USER:-jwtuser}
+      SERVICE_DB_PASSWORD_FILE: /run/secrets/user_management_password
+      SERVICE_DEBUG_ENABLED: ${USERMANAGEMENT_DEBUG_ENABLED:-false}
+    secrets:
+    - minio_config
+    - postgres_password
+    volumes:
+    - *user-management-logs
+
+  security:
+    container_name: security
+    depends_on: [ postgres ]
+    image: *security-image
+    restart: *restart
+    network_mode: "service:bet"
+    platform: linux/amd64
+    configs: [ security_config ]
+    env_file: security/fixme.env
+    environment:
+      << : *postgres-environment
+      ADMIN_PASSWD_FILE: /run/secrets/security_admin_password
+      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_DB: ${SECURITY_DB:-jwt}
+      SERVICE_DB_HOST: localhost
+      SERVICE_DB_USER: ${SECURITY_DB_USER:-jwtuser}
+      SERVICE_DB_PASSWORD_FILE: /run/secrets/security_password
+      SERVICE_DEBUG_ENABLED: ${SECURITY_DEBUG_ENABLED:-false}
+    secrets: [ postgres_password ]
+    volumes:
+    - *security-logs
+
+  key-manager:
+    container_name: key-manager
+    depends_on: [ postgres ]
+    image: *key-manager-image
+    restart: *restart
+    network_mode: "service:bet"
+    platform: linux/amd64
+    configs: [ key_manager_config ]
+    env_file: key-manager/fixme.env
+    environment:
+      << : *postgres-environment
+      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_DB: ${KEYMANAGER_DB:-key_manager}
+      SERVICE_DB_HOST: localhost
+      SERVICE_DB_USER: ${KEYMANAGER_DB_USER:-jwtuser}
+      SERVICE_DB_PASSWORD_FILE: /run/secrets/key_manager_password
+      SERVICE_DEBUG_ENABLED: ${KEYMANAGER_DEBUG_ENABLED:-false}
+    secrets:
+    - postgres_password
+    - *secret-ssh-id
+    volumes:
+    - *pub-ssh-id
+    - *key-manager-logs
+
+  monitor:
+    container_name: monitor
+    depends_on:
+    - redis
+    - kafka
+    image: *monitor-image
+    restart: *restart
+    network_mode: "service:bet"
+    platform: linux/amd64
+    configs: [ monitor_config ]
+    environment:
+      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_CONFIG_BRANCH: master
+      SERVICE_DEBUG_ENABLED: ${MONITOR_DEBUG_ENABLED:-false}
+      PLATINA_ITERATIONS: 90
+      PLATINA_PERIOD_SECS: 3
+      REDIS_ITERATIONS: 90
+      REDIS_PERIOD_SECS: 3
+      KAFKA_ITERATIONS: 180
+      KAFKA_PERIOD_SECS: 3
+    volumes:
+    - *monitor-logs
+    - ./monitor/parquet:/home/parquetdb
+
+  platina-executor:
+    container_name: platina-executor
+    depends_on: [ pccserver ]
+    image: *platina-executor-image
+    restart: *restart
+    network_mode: "service:bet"
+    platform: linux/amd64
+    configs: [ platina_executor_config ]
+    env_file: platina-executor/fixme.env
+    environment:
+      << : *postgres-environment
+      KAFKA_ITERATIONS: 180
+      KAFKA_PERIOD_SECS: 3
+      PLATINA_ITERATIONS: 90
+      PLATINA_PERIOD_SECS: 3
+      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_CONFIG_BRANCH: ${PLATINAEXECUTOR_CONFIG_BRANCH:-master}
+      SERVICE_DB: ${PLATINAEXECUTOR_DB:-executordb}
+      SERVICE_DB_HOST: localhost
+      SERVICE_DB_USER: ${PLATINAEXECUTOR_DB_USER:-executor}
+      SERVICE_DB_PASSWORD_FILE: /run/secrets/platina_executor_password
+      SERVICE_DEBUG_ENABLED: ${PLATINAEXECUTOR_DEBUG_ENABLED:-false}
+    secrets:
+    - postgres_password
+    - *secret-ssh-id
+    volumes:
+    - *platina-executor-logs
+    - *pccserver-data
+    - *pub-ssh-id
+    - /usr/bin/docker:/usr/bin/docker
+    - /var/run/docker.sock:/var/run/docker.sock
+    - pccserver-playbooks:/home/ansible:ro
+    - kubespray2-playbooks:/home/kubespray:ro
+    - kubespray-playbooks:/home/turnkey-kubespray:ro
+    - ops-playbooks:/home/ops:ro
+    - orchestration-playbooks:/home/orchestration
+
+  platina-monitor:
+    container_name: platina-monitor
+    depends_on:
+    - postgres
+    - kafka
+    - prometheus
+    - alertmanager
+    - pushgateway
+    - mailer
+    image: *platina-monitor-image
+    restart: *restart
+    network_mode: "service:bet"
+    platform: linux/amd64
+    configs: [ platina_monitor_config ]
+    env_file: platina-monitor/fixme.env
+    environment:
+      << : *postgres-environment
+      KAFKA_ITERATIONS: 180
+      KAFKA_PERIOD_SECS: 3
+      PLATINA_ITERATIONS: 90
+      PLATINA_PERIOD_SECS: 3
+      PROMETHEUS_ITERATIONS: 180
+      PROMETHEUS_PERIOD_SECS: 3
+      PROMETHEUSGW_ITERATIONS: 180
+      PROMETHEUSGW_PERIOD_SECS: 3
+      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_CONFIG_BRANCH: ${PLATINAMONITOR_CONFIG_BRANCH:-master}
+      SERVICE_DB: ${PLATINAMONITOR_DB:-platina_monitor}
+      SERVICE_DB_HOST: localhost
+      SERVICE_DB_USER: ${PLATINAMONITOR_DB_USER:-monitor}
+      SERVICE_DB_PASSWORD_FILE: /run/secrets/platina_monitor_password
+      SERVICE_DEBUG_ENABLED: ${PLATINAMONITOR_DEBUG_ENABLED:-false}
+    secrets: [ postgres_password ]
+    volumes:
+    - *platina-monitor-logs
+    - *prometheus-rules
+
+  maas:
+    container_name: maas
+    image: *maas-image
+    restart: *restart
+    network_mode: "service:bet"
+    platform: linux/amd64
+    cap_add:
+    - SYS_PTRACE
+    configs: [ maas_config ]
+    env_file: maas/fixme.env
+    environment:
+      << : *postgres-environment
+      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_CONFIG_BRANCH: ${MAAS_CONFIG_BRANCH:-master}
+      SERVICE_DB: ${MAAS_DB:-maas}
+      SERVICE_DB_HOST: localhost
+      SERVICE_DB_USER: ${MAAS_DB_USER:-pcc}
+      SERVICE_DB_PASSWORD_FILE: /run/secrets/maas_password
+      SERVICE_DEBUG_ENABLED: ${MAAS_DEBUG_ENABLED:-false}
+      SERVICE_ADDITIONAL_ARGUMENTS: ${MAAS_ADDITIONAL_ARGUMENTS:-}
+      ORCHESTRATION_REPO_REFERENCE: master
+      ORCHESTRATION_REPO_USER_TOKEN: 'empty'
+      ANSIBLE_VERBOSITY: ${ANSIBLE_VERBOSE_LEVEL:-0}
+    secrets:
+    - postgres_password
+    - *secret-ssh-id
+    volumes:
+    - *maas-logs
+    - *pccserver-data
+    - *pub-ssh-id
+
+  phone-home:
+    container_name: phone-home
+    depends_on: [ "api-registry" ]
+    image: *phone-home-image
+    restart: *restart
+    network_mode: "service:bet"
+    platform: linux/amd64
+    cap_add:
+    - SYS_PTRACE
+    configs: [ phone_home_config ]
+    env_file: phone-home/fixme.env
+    environment:
+      << : *minio-environment
+      SERVICES: "platina-monitor,key-manager,monitor,registry,maas,node-exporter,mailer,user-management,platina-executor,cadvisor,gateway,pccserver,security"
+      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_DB: ${PHONEHOME_DB:-phone_home}
+      SERVICE_DB_HOST: localhost
+      SERVICE_DB_USER: ${PHONEHOME_DB_USER:-phuser}
+      SERVICE_DB_PASSWORD_FILE: /run/secrets/phone_home_password
+      SERVICE_DEBUG_ENABLED: ${PHONEHOME_DEBUG_ENABLED:-false}
+      CUSTOMER: PlatinaSystems
+    secrets: [ minio_config ]
+    volumes:
+    - *phone-home-data
+    - *phone-home-logs
+    - *pub-gpg-key
+
+  pcc-ui:
+    container_name: pcc-ui
+    image: *pcc-ui-image
+    restart: *restart
+    network_mode: "service:bet"
+    platform: linux/amd64
+    configs: [ pcc_ui_config ]
+    environment:
+      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_CONFIG_BRANCH: master
+      SERVICE_DEBUG_ENABLED: ${PCCUI_DEBUG_ENABLED:-false}
+      PLATINA_ITERATIONS: 200
+      PLATINA_PERIOD_SECS: 5
+    secrets:
+    - source: tlsx_cert
+      target: /usr/local/apache2/conf/server.crt
+    - source: tlsx_key
+      target: /usr/local/apache2/conf/server.key
+    volumes:
+    - *pcc-ui-logs
+
+networks:
+  ben: {}
+
+volumes:
+  bex_tlsx:
+  fex_tlsx:
+  kubespray2-playbooks:
+  kubespray-playbooks:
+  ops-playbooks:
+  orchestration-playbooks:
+  pccserver-playbooks:
+  pccserver-supervisor-config:

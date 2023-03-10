@@ -1,0 +1,91 @@
+spring:
+  profiles: docker
+
+application:
+  local:
+    address: 127.0.0.1
+    port: 8998
+    secureport: 0
+    runmode: dev
+  groupId: docker
+
+registry:
+  skip: false
+  address: 127.0.0.1
+  port: 8761
+
+gateway:
+  address: 127.0.0.1
+  port: 9999
+
+kafka:
+  schemaRegistries:
+  - host: localhost
+    port: 8081
+    protocol: http
+  brokers:
+  - host: localhost
+    port: 9092
+
+logs:
+  appender:
+    stdout:
+      enabled: true
+      level: TRACE
+    default:
+      enabled: true
+      level: INFO
+      maxfilesize: 25MB
+      maxhistory: 1
+      totalsizecap: 400MB
+    detailed:
+      enabled: true
+      level: TRACE
+      maxfilesize: 25MB
+      maxhistory: 1
+      totalsizecap: 400MB
+    error:
+      enabled: true
+      level: ERROR
+      maxfilesize: 25MB
+      maxhistory: 1
+      totalsizecap: 400MB
+
+db:
+  name: executordb
+  host: localhost
+  port: 5432
+  sslmode: disable
+  connectionTimeout: 10
+  retryFactor: 2
+  retryLimit: 90
+
+ansible:
+  delegatorUser: pcc
+  sshPrivateKeyFile: /root/.ssh/id_rsa_ansible
+  sshUser: pcc
+  dir: /home/ansible/infra
+  inventory: /home/ansible/infra/inventory/sites/hosts.yml
+  playbook: /home/ansible/infra/main.yml
+  vault: /home/ansible/infra/vault/vault.yml
+  callback: http://%s:8998/statuses/
+  delegatorIp: 127.0.0.1
+  allowConcurrency: false
+  retry: 0
+
+resources:
+- name: id_rsa_ansible
+  path: /root/.ssh/id_rsa_ansible
+- name: id_rsa_ansible_pub
+  path: /root/.ssh/id_rsa_ansible_pub
+
+tasks:
+  poolSize: 6
+
+monitoring:
+  period: 60
+  metrics:
+  - prefix: memory
+    file: /sys/fs/cgroup/memory/memory.stat
+  - prefix: cpu
+    file: /sys/fs/cgroup/cpu/cpuacct.stat

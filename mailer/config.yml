@@ -1,0 +1,155 @@
+spring:
+  profiles: docker
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: info,health,refresh,mail
+
+application:
+  local:
+    address: 127.0.0.1
+    port: 8787
+    secureport: 0
+
+registry:
+  skip: false
+  address: registry
+  port: 8761
+
+mailer:
+  supportedLanguages:
+  - ita
+  - eng
+  user-management:
+    host: user-management
+    port: 8083
+    protocol: http
+    endpoint: /internal/user
+  server:
+    host: smtp.gmail.com
+    port: 465
+  templates:
+    '1':
+      name: Platina
+      companyLink: https://www.platinasystems.com/
+      companyLogoLink: https://platinasystems.com/wp-content/uploads/2019/08/Platina-Logo.png
+      companyCopyright:
+        ita: "Platina \xA9 2018. Tutti i diritti riservati."
+        eng: "Platina \xA9 2018. All rights reserved."
+      bodies:
+        registration:
+          greeting:
+            ita: Ciao
+            eng: Hi
+          subject:
+            ita: Registrazione
+            eng: Registration
+          intros:
+            ita:
+            - Benvenuto in Platina!
+            eng:
+            - Welcome to Platina! We're very excited to have you on board.
+          body:
+            ita: 'Per impostare la tua password clicca qui:'
+            eng: 'To set your password, please click here:'
+          linkButtonText:
+            ita: Imposta la password
+            eng: Set your password
+          linkButtonHexColor: '#000000'
+          outros:
+            ita:
+            - Hai bisogno di aiuto o hai delle domande? Inviaci una mail all'indirizzo
+              support@platinasystems.com
+            eng:
+            - Need help or have questions? Just send an email to support@platinasystems.com
+          signature:
+            ita: Saluti
+            eng: Sincerely
+          trouble:
+            ita: 'Se il link non funziona copia e incolla il seguente URL nel tuo
+              browser:'
+            eng: 'If the button is not working for you, just copy and paste the URL
+              below into your web browser:'
+        recovery:
+          greeting:
+            ita: Ciao
+            eng: Hi
+          subject:
+            ita: Recupero credenziali
+            eng: Password recovery
+          intros:
+            ita:
+            - Hai ricevuto questa mail a seguito di una richiesta di ripristino della
+              password per il tuo account.
+            eng:
+            - You have received this email because a password reset request for Platina
+              account was received.
+          body:
+            ita: 'Clicca qui per ripristinare la tua password:'
+            eng: 'Click the button below to reset your password:'
+          linkButtonText:
+            ita: Ripristina la password
+            eng: Reset your password
+          linkButtonHexColor: '#000000'
+          outros:
+            ita:
+            - Se non hai richiesto il ripristino della password puoi ignorare questa
+              mail.
+            eng:
+            - If you did not request a password reset, no further action is required
+              on your part.
+          signature:
+            ita: Saluti
+            eng: Sincerely
+          trouble:
+            ita: 'Se il link non funziona copia e incolla il seguente URL nel tuo
+              browser:'
+            eng: 'If the button is not working for you, just copy and paste the URL
+              below into your web browser:'
+    '2':
+      name: Platina
+      companyLink: https://www.platinasystems.com/
+      companyLogoLink: https://platinasystems.com/wp-content/uploads/2019/08/Platina-Logo.png
+      companyCopyright:
+        ita: "Platina \xA9 2021. Tutti i diritti riservati."
+        eng: "Platina \xA9 2021. All rights reserved."
+      bodies:
+        alert:
+          greeting:
+            ita: Ciao
+            eng: Hi
+          subject:
+            ita: Monitoring Alert
+            eng: Monitoring Alert
+          body:
+            ita: Monitoring Alert
+            eng: Monitoring Alert
+          signature:
+            ita: Saluti
+            eng: Sincerely
+          trouble:
+            ita: ''
+            eng: ''
+
+logs:
+  appender:
+    stdout:
+      enabled: true
+      level: TRACE
+    default:
+      enabled: true
+      level: INFO
+      maxfilesize: 500MB
+      totalsizecap: 1GB
+    detailed:
+      enabled: true
+      level: TRACE
+      maxfilesize: 500MB
+      totalsizecap: 2GB
+    error:
+      enabled: true
+      level: ERROR
+      maxfilesize: 500MB
+      totalsizecap: 2GB

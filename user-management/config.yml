@@ -1,0 +1,147 @@
+server:
+  port: 8083
+  max-http-header-size: 65536
+  error:
+    include-message: always
+
+spring:
+  profiles: docker
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          lob:
+            non_contextual_creation: true
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+  datasource:
+    url: jdbc:postgresql://localhost/jwt
+    driver-class-name: org.postgresql.Driver
+  application:
+    name: user-management
+
+storage:
+  key: minio
+  secret: miniominio
+  url: http://localhost:9000
+  ssl: false
+  adminPath: /home/mc
+  adminHostName: platinastorage
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+
+jwt:
+  secret: mySecret
+  expiration: 604800
+  applicationExpiration: 220752000
+
+mailer:
+  url: https://localhost:9999/mailer/mail
+
+security:
+  header: Authorization
+  validate:
+    url: https://localhost:9999/security/validate
+  pwd:
+    lenght: 8
+
+users:
+  unused:
+    remove: true
+    period: 12
+
+user-management:
+  template:
+    register: registration
+    recovery: recovery
+  user:
+    registration:
+      path: register
+    get:
+      path: get
+    update:
+      path: update
+    list:
+      path: list
+  role:
+    registration:
+      path: register
+    get:
+      path: get
+    update:
+      path: update
+    list:
+      path: list
+  entity:
+    registration:
+      path: register
+    get:
+      path: get
+    update:
+      path: update
+    list:
+      path: list
+  operation:
+    registration:
+      path: register
+    get:
+      path: get
+    update:
+      path: update
+    list:
+      path: list
+  tenant:
+    default: 1
+  userspace:
+    defaults:
+    - scope: user-settings
+      value: '{}'
+
+logs:
+  appender:
+    stdout:
+      enabled: true
+      level: TRACE
+    default:
+      enabled: true
+      level: INFO
+      maxhistory: 20
+      maxfilesize: 25MB
+      totalsizecap: 1GB
+    detailed:
+      historypattern: yyyy-MM-dd
+      enabled: true
+      level: TRACE
+      maxhistory: 4
+      maxfilesize: 25MB
+      totalsizecap: 100MB
+    error:
+      enabled: true
+      maxfilesize: 25MB
+      totalsizecap: 400MB
+
+management:
+  endpoint:
+    shutdown:
+      enabled: true
+    health:
+      enabled: true
+    info:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include:
+        - '*'
+
+phone-home:
+  conf:
+    path: /home/conf
+  log:
+    path: /home/logs
+  storage:
+    endpoint: http://localhost:9000

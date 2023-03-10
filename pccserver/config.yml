@@ -1,0 +1,434 @@
+spring:
+  profiles: docker
+
+application:
+  local:
+    address: 127.0.0.1
+    port: 8989
+    secureport: 0
+    runmode: dev
+  groupId: docker
+  runmode: dev
+
+registry:
+  skip: false
+  address: 127.0.0.1
+  port: 8761
+
+gateway:
+  address: 127.0.0.1
+  port: 9999
+
+kafka:
+  schemaRegistries:
+  - host: localhost
+    port: 8081
+    protocol: http
+  brokers:
+  - host: localhost
+    port: 9092
+  topicBlacklist: null
+
+monitor:
+  collector:
+    defaultProductionPeriod: 30000
+    pushPolicies:
+    - topics:
+      - storage
+      policy: percentage
+      triggers:
+      - 10
+      productionPeriod: 30
+      enabled: true
+      noPushLimit: 5
+    - topics:
+      - processes
+      policy: percentage
+      triggers:
+      - 10
+      productionPeriod: 60
+      enabled: false
+      noPushLimit: 10
+    - topics:
+      - sensor
+      - system
+      - cpu
+      - memory
+      policy: percentage
+      triggers:
+      - 10
+      productionPeriod: 30
+      enabled: true
+      noPushLimit: 10
+
+notification:
+  pool:
+    size: 5
+  defaultExpiryTimes:
+  - type: system
+    expiryTime: 168h
+  - type: provision.apps
+    expiryTime: 168h
+  - type: provision.maas
+    expiryTime: 168h
+  - type: provision.policy
+    expiryTime: 168h
+  - type: kubernetes.cluster
+    expiryTime: 336h
+  - type: ceph.cluster
+    expiryTime: 336h
+  - type: ceph.cluster.rgw
+    expiryTime: 168h
+  - type: network.cluster
+    expiryTime: 336h
+  - type: node.avail
+    expiryTime: 168h
+  - type: node.iface
+    expiryTime: 168h
+  - type: node.psu
+    expiryTime: 720h
+  - type: node.drive
+    expiryTime: 4368h
+
+logs:
+  appender:
+    stdout:
+      enabled: true
+      level: TRACE
+    default:
+      enabled: true
+      level: INFO
+      maxfilesize: 25MB
+      maxhistory: 1
+      totalsizecap: 400MB
+    detailed:
+      enabled: true
+      level: DEBUG
+      maxfilesize: 25MB
+      maxhistory: 1
+      totalsizecap: 400MB
+    error:
+      enabled: true
+      level: ERROR
+      maxfilesize: 25MB
+      maxhistory: 1
+      totalsizecap: 400MB
+
+node:
+  restore:
+    pool:
+      size: 20
+  availability:
+    criticalUsagePercentage: 75
+    enable: true
+    runmode: dev
+    nodeWatcherRefreshPeriod: 30s
+    offlineTimeout: 100s
+    agentOfflineTimeout: 110s
+    maxBackoffTime: 24h
+    pool:
+      size: 50
+  status:
+    pool:
+      size: 50
+  interface:
+    pool:
+      size: 50
+  package:
+    pool:
+      size: 50
+
+executor:
+  pool:
+    size: 5
+
+infrastracture:
+  basic:
+    playbook:
+      output:
+        path: plays.0.tasks.3.hosts.target.msg
+  interfaces:
+    playbook:
+      output:
+        path: plays.1.tasks.8.hosts.target.results
+  lldp:
+    playbook:
+      output:
+        path: plays.1.tasks.7.hosts.target.ansible_facts.lldp
+
+system:
+  boot:
+    restore: false
+  security:
+    tenant:
+      root:
+        id: 1
+  apps:
+    deploy:
+      auto:
+        skip: tunnel,interface
+  ntp:
+    timezone: America/Chicago
+  network:
+    tunnel:
+      cidr: null
+
+provisions:
+  forceReinstall: false
+
+templates:
+  onBoot:
+  - name: LLDP
+    longName: LLDP
+    description: Implementation of IEEE 802.1ab (LLDP)
+    apps:
+    - appId: lldpd
+      version: default
+  - name: Baremetal Services
+    longName: Baremetal Services
+    description: Bare-metal deployment
+    apps:
+    - appId: maas
+      version: default
+  - name: ETHTOOL
+    longName: ETHTOOL
+    description: Utility for controlling network drivers and hardware
+    apps:
+    - appId: ethtool
+      version: default
+  - name: DNS
+    longName: DNS client
+    description: Platina DNS Embedded System
+    apps:
+    - appId: dns
+      version: 1.0.0
+  - name: NTP
+    longName: NTP client
+    description: Networking protocol for clock synchronization between computer systems
+    apps:
+    - appId: ntp
+      version: 1.0.0
+  - name: RSYSLOG
+    longName: RSYSLOG client
+    description: Rsyslog client
+    apps:
+    - appId: rsyslogd
+      version: default
+  - name: SNMP
+    longName: SNMP agent
+    description: SNMP v2c / v3
+    apps:
+    - appId: snmp
+      version: 1.0.0
+  - name: OS_PACKAGES
+    longName: OS Package Repository
+    description: The Debian, Ubuntu or CentOS OS Packages Repository
+    apps:
+    - appId: os-repository
+      version: default
+  - name: DOCKER
+    longName: Docker Community Package Repository
+    description: The Docker Community Package Repository
+    apps:
+    - appId: docker-community-repository
+      version: default
+  - name: CEPH
+    longName: Ceph Community Package Repository
+    description: The Ceph Community Package Repository
+    apps:
+    - appId: ceph-community-repository
+      version: default
+  - name: FRROUTING
+    longName: FRRouting Community Package Repository
+    description: The FRRouting Community Package Repository
+    apps:
+    - appId: frrouting-community-repository
+      version: default
+  - name: PLATINA_SYSTEMS
+    longName: Platina Systems Package Repository
+    description: Platina Systems Package Repositories
+    apps:
+    - appId: platinasystems-community-repository
+      version: default
+  - name: AUTOMATIC_UPGRADES
+    longName: Automatic Upgrades
+    description: Automatic Package Update
+    apps:
+    - appId: automatic-upgrades
+      version: default
+  - name: NODE_SELF_HEALING
+    longName: Node Self Healing
+    description: Node Self Healing App
+    apps:
+    - appId: node-self-healing
+      version: default
+  - name: WEB_PROXY_CLIENT
+    longName: WEB proxy client
+    description: WEB proxy client App
+    apps:
+    - appId: web-proxy-client
+      version: default
+  - name: TRUSTED-CA-CERTIFICATE
+    longName: Trusted CA certificate
+    description: Trusted CA certificate App
+    apps:
+    - appId: trusted-ca-certificate
+      version: default
+  - name: LOAD_BALANCER
+    longName: Load Balancer
+    description: Custom Load Balancer
+    apps:
+    - appId: loadbalancer
+      version: default
+  - name: LOAD_BALANCER_CEPH
+    longName: Ceph Load Balancer
+    description: Ceph Load Balancer
+    apps:
+    - appId: loadbalancer-ceph
+      version: default
+  - name: IPTABLES
+    longName: Iptables
+    description: Iptables config manager
+    apps:
+    - appId: iptables
+      version: default
+
+roles:
+  onBoot:
+  - name: Default
+    description: Default role
+    templateNames:
+    - DNS
+    - OS_PACKAGES
+    - AUTOMATIC_UPGRADES
+    - LLDP
+    - NTP
+    - ETHTOOL
+    - NODE_SELF_HEALING
+    default: true
+    protect: false
+  - name: Baremetal Management Node
+    description: Bare-metal deployment Role
+    templateNames:
+    - Baremetal Services
+    protect: true
+    nodeAllowed:
+    - clusterHead
+  - name: Cluster Head
+    description: The Role for Cluster Heads
+    templateNames:
+    - PLATINA_SYSTEMS
+    protect: true
+    nodeAllowed:
+    - clusterHead
+  - name: Ceph Resource
+    description: The Ceph Community Package Repository Role
+    templateNames:
+    - CEPH
+    protect: true
+  - name: Kubernetes Resource
+    description: The Docker Community Package Repository Role
+    templateNames:
+    - DOCKER
+    protect: true
+  - name: FRR Resource
+    description: The FRRouting Community Package Repository Role
+    templateNames:
+    - FRROUTING
+    protect: true
+  - name: Load Balancer
+    description: Custom Load Balancer
+    templateNames:
+    - LOAD_BALANCER
+    protect: true
+  - name: Ceph Load Balancer
+    description: Ceph Load Balancer
+    templateNames:
+    - LOAD_BALANCER_CEPH
+    protect: true
+
+kubernetes:
+  versions:
+  - v1.23.1
+  - v1.22.5
+  - v1.21.7
+  - v1.20.14
+  cniPlugins:
+  - kube-router
+  excludedDataInterfacesOnlyServers:
+  - kube-bridge
+  - kube-dummy-if
+  - docker0
+  - lo0
+  - dummy0
+  - kube-ipvs0
+  - veth*
+
+security:
+  tenantfilter: true
+
+inventory:
+  managementInterface:
+    name: eth0,eno1
+
+db:
+  name: pccdb
+  host: localhost
+  port: 5432
+  sslmode: disable
+  connectionTimeout: 10
+  retryLimit: 90
+  retryFactor: 2
+
+ansible:
+  delegatorUser: pcc
+  sshPrivateKeyFile: /root/.ssh/id_rsa_ansible
+  sshUser: pcc
+  dir: /home/ansible/infra
+  inventory: /home/ansible/infra/inventory/sites/hosts.yml
+  playbook: /home/ansible/infra/main.yml
+  vault: /home/ansible/infra/vault/vault.yml
+  callback: http://%s:8989/statuses/
+  delegatorIp: 127.0.0.1
+  taskTimeout: 15s
+
+apps:
+  maas:
+    rebootWaitTime: 15m
+  network:
+    pingHealthCheckWaitTime: 2s
+    pingInstallCheckWaitTime: 40s
+    noSnatControlIp: false
+  system:
+    sshTimeout: 3s
+    ifaceUpdateTimeout: 0s
+    breakoutUpdateTimeout: 0s
+
+resources:
+- name: id_rsa_ansible
+  path: /root/.ssh/id_rsa_ansible
+- name: id_rsa_ansible_pub
+  path: /root/.ssh/id_rsa_ansible_pub
+
+storage:
+  protocol: http
+  host: localhost
+  port: 9000
+
+policies:
+  pool:
+    size: 5
+
+ceph:
+  pool:
+    codeRatio:
+      2: 1
+      4: 2
+      8: 3,4
+      12: 3
+      16: 4
+
+redis:
+  host: localhost
+  port: 6379
+  database: 1

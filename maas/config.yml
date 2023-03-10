@@ -1,0 +1,76 @@
+spring:
+  application:
+    name: maas
+  profiles: docker
+
+application:
+  local:
+    address: 127.0.0.1
+    port: 5980
+    secureport: 0
+  groupId: docker
+  runmode: dev
+
+registry:
+  address: 127.0.0.1
+  port: 8761
+
+gateway:
+  address: 127.0.0.1
+  port: 9999
+
+kafka:
+  schemaRegistries:
+  - host: localhost
+    port: 8081
+    protocol: http
+  brokers:
+  - host: localhost
+    port: 9092
+
+db:
+  name: maas
+  host: localhost
+  port: 5432
+  sslmode: disable
+  connectionTimeout: 10
+
+ansible:
+  delegatorUser: pcc
+  sshPrivateKeyFile: /root/.ssh/id_rsa_ansible
+
+maas:
+  whitelist:
+  - sv12
+  - sv13
+  - sv14
+  - sv15
+  default_private_network: 203.0.113.0/24
+  provisioningTimeoutSeconds: 1800
+  servicesWaitTimeSeconds: 0
+  allowedInterfaces:
+  - xeth
+
+logs:
+  appender:
+    stdout:
+      enabled: true
+      level: TRACE
+    default:
+      enabled: true
+      level: INFO
+      maxfilesize: 25MB
+      maxhistory: 1
+      totalsizecap: 400MB
+    detailed:
+      enabled: true
+      level: TRACE
+      maxfilesize: 25MB
+      maxhistory: 1
+      totalsizecap: 400MB
+    error:
+      enabled: true
+      level: ERROR
+      maxfilesize: 25MB
+      maxhistory: 1
+      totalsizecap: 400MB

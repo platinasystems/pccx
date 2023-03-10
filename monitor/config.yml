@@ -1,0 +1,227 @@
+spring:
+  profiles: docker
+  application:
+    name: monitor
+
+server:
+  port: 9191
+  max-http-header-size: 65536
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+
+monitor:
+  scope: global
+  kafka:
+    schemaRegistry:
+      host: localhost
+      port: 8081
+      protocol: http
+    schemaRegistryScanPeriod: 5
+    brokers:
+    - host: localhost
+      port: 9092
+  topic:
+    defaultConf:
+      type: avro
+      commit: true
+      offset: earliest
+      eviction: 300
+    topics:
+    - name: summary
+      type: avro
+      commit: true
+      offset: earliest
+      parquet:
+        period: 120
+        subpathKeys: []
+    - name: cpu
+      type: avro
+      commit: true
+      offset: earliest
+      parquet:
+        period: 120
+        subpathKeys: []
+    - name: memory
+      type: avro
+      commit: true
+      offset: earliest
+      parquet:
+        period: 120
+        subpath: []
+    - name: system
+      type: avro
+      commit: true
+      offset: earliest
+      parquet:
+        period: 120
+        subpath: []
+    - name: sensor
+      type: avro
+      commit: true
+      offset: earliest
+      parquet:
+        period: 120
+        subpath: []
+    - name: network
+      type: avro
+      commit: true
+      offset: earliest
+      parquet:
+        period: 120
+        subpath: []
+    - name: storage
+      type: avro
+      commit: true
+      offset: earliest
+      parquet:
+        period: 120
+        subpath: []
+    - name: ceph-metrics
+      type: avro
+      commit: true
+      offset: earliest
+      parquet:
+        period: 120
+        subpath: []
+    - name: partitions
+      type: avro
+      commit: true
+      offset: earliest
+      parquet:
+        period: 120
+        subpath: []
+    - name: varnishStats
+      type: avro
+      commit: true
+      offset: earliest
+      parquet:
+        period: 120
+        subpath: []
+    - name: flowStats
+      type: avro
+      commit: true
+      offset: earliest
+      parquet:
+        period: 120
+        subpath: []
+    - name: nodeDetails-2
+      type: avro
+      commit: true
+      offset: earliest
+      parquet:
+        period: 120
+        subpath: []
+    - name: podDetails-2
+      type: avro
+      commit: true
+      offset: earliest
+      parquet:
+        period: 120
+        subpath: []
+    - name: svcDetails-2
+      type: avro
+      commit: true
+      offset: earliest
+      parquet:
+        period: 120
+        subpath: []
+    - name: appDetails
+      type: avro
+      commit: true
+      offset: earliest
+      parquet:
+        period: 120
+        subpath: []
+    - name: ksm
+      type: avro
+      commit: true
+      offset: earliest
+    - name: monitor-.*
+      type: avro
+      commit: true
+      offset: earliest
+      parquet:
+        period: 120
+        subpath: []
+  redis:
+    poolSize: 10
+    server:
+      host: localhost
+      port: 6379
+    defaultSamplePerCache: 20
+    defaultUpdateCachePeriod: 300
+    caches:
+    - value: 1
+      unit: hour
+      updatePeriod: 600
+      sample: 30
+  websocket:
+    tokenRefreshPeriod: 60
+    samplesTimestampTolerance: 5
+    allowUnauthenticatedSessions: false
+  microservices:
+    mailer:
+      url: https://localhost:9999/mailer
+      endpoints:
+        mail:
+          endpoint: mail
+    userManagement:
+      url: https://localhost:9999/user-management
+      endpoints:
+        user:
+          endpoint: user
+
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 20000
+        readTimeout: 20000
+
+management:
+  endpoint:
+    shutdown:
+      enabled: true
+    health:
+      enabled: true
+    info:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include:
+        - '*'
+
+logs:
+  appender:
+    stdout:
+      enabled: true
+      level: TRACE
+    default:
+      enabled: true
+      level: INFO
+      maxhistory: 20
+      maxfilesize: 25MB
+      totalsizecap: 1GB
+    detailed:
+      historypattern: yyyy-MM-dd
+      enabled: true
+      level: TRACE
+      maxhistory: 4
+      maxfilesize: 25MB
+      totalsizecap: 100MB
+    error:
+      enabled: true
+      maxfilesize: 25MB
+      totalsizecap: 400MB
+
+phone-home:
+  conf:
+    path: /home/conf
+  log:
+    path: /home/logs
+  storage:
+    endpoint: http://localhost:9000

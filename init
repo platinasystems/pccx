@@ -1,0 +1,161 @@
+#!/bin/sh -e
+
+if test -r .env; then
+	source .env
+fi
+
+: ${TLSX_IMAGE:=platina.io/tlsx}
+
+if test $# -gt 0 -a "$1" = "help"; then
+	docker run --rm ${TLSX_IMAGE} help create-cert
+	exit 0
+fi
+
+create() {
+	mode=$1; shift
+	file=$1; shift
+	mkdir -p ${file%/*}
+	touch ${file}
+	chmod ${mode} ${file}
+	if test $# -gt 0; then
+		>>${file} eval $@
+	fi
+}
+
+# Set variable named by last word of prompt.
+# e.g. this sets ${user} with input up to newline
+#
+#	prompt something something user
+#	> something something user: <input>
+#
+prompt() {
+	eval last=\${$#}
+	printf '%s: ' "$*"
+	eval read "${last}"
+}
+
+# Silently set variable named by last word of prompt.
+# e.g. this sets ${password} with non-echo'd input up to newline
+#
+#	sprompt something something password
+#	> something something password: <input>
+#
+sprompt() {
+	eval last=\${$#}
+	printf '%s: ' "$*"
+	restore=`stty -g`
+	stty -echo
+	trap "stty ${restore}" EXIT
+	eval read -r "${last}"
+	stty ${restore}
+	trap - EXIT
+	echo
+}
+	
+if test ! -f tlsx/cert.pem; then
+	mkdir -p tlsx
+	docker run --rm -v ./tlsx:/tlsx ${TLSX_IMAGE} --state=/tlsx \
+		create-cert "$@"
+fi
+
+test -f ssh/id_rsa ||
+	ssh-keygen -q -t rsa -N '' -f ./ssh/id_rsa
+
+if test ! -s minio/config.env; then
+	prompt minio root user
+	sprompt minio root password
+	create 0600 minio/config.env cat <<-EOF
+		MINIO_ROOT_USER="$user"
+		MINIO_ROOT_PASSWORD="${password}"
+		MINIO_VOLUMES=/data
+	EOF
+	test -s minio/config.env
+fi
+
+if test ! -f postgres/password.txt; then
+	sprompt postgres password
+	create 0600 postgres/password.txt tr -d \\\\n <<-EOF
+		${password}
+	EOF
+	test -s postgres/password.txt
+fi
+
+for d in \
+	gateway \
+	kafka \
+	key-manager \
+	maas \
+	mailer \
+	pccserver \
+	phone-home \
+	platina-executor \
+	platina-monitor \
+	security \
+	security/admin \
+	user-management
+do
+	if test ! -f $d/password.txt; then
+		sprompt $d password
+		create 0600 $d/password.txt tr -d \\\\n <<-EOF
+			${password}
+		EOF
+		test -s $d/password.txt ||
+			cat postgres/password.txt >> $d/password.txt
+	fi
+done
+
+test -s gateway/fixme.env ||
+	create 0600 gateway/fixme.env cat <<-EOF
+		KEYSTORE_PASSWORD="$(cat gateway/password.txt)"
+EOF
+
+test -s kafka/fixme.env ||
+	create 0600 kafka/fixme.env cat <<-EOF
+		PASSWORD="$(cat kafka/password.txt)"
+EOF
+
+test -s key-manager/fixme.env ||
+	create 0600 key-manager/fixme.env cat <<-EOF
+		SERVICE_DB_PASSWORD="$(cat key-manager/password.txt)"
+EOF
+
+test -s maas/fixme.env ||
+	create 0600 maas/fixme.env cat <<-EOF
+		SERVICE_DB_PASSWORD="$(cat maas/password.txt)"
+EOF
+
+test -s mailer/fixme.env ||
+	create 0600 mailer/fixme.env cat <<-EOF
+		SERVICE_PASSWORD="$(cat mailer/password.txt)"
+EOF
+
+test -s pccserver/fixme.env ||
+	create 0600 pccserver/fixme.env cat <<-EOF
+		SERVICE_DB_PASSWORD="$(cat pccserver/password.txt)"
+EOF
+
+test -s phone-home/fixme.env ||
+	create 0600 phone-home/fixme.env cat <<-EOF
+		SERVICE_DB_PASSWORD="$(cat phone-home/password.txt)"
+EOF
+
+test -s platina-executor/fixme.env ||
+	create 0600 platina-executor/fixme.env cat <<-EOF
+		SERVICE_DB_PASSWORD="$(cat platina-executor/password.txt)"
+EOF
+
+test -s platina-monitor/fixme.env ||
+	create 0600 platina-monitor/fixme.env cat <<-EOF
+		SERVICE_DB_PASSWORD="$(cat platina-monitor/password.txt)"
+EOF
+
+test -s security/fixme.env ||
+	create 0600 security/fixme.env cat <<-EOF
+		ADMIN_PASSWORD="$(cat security/admin/password.txt)"
+		SERVICE_DB_PASSWORD="$(cat security/password.txt)"
+EOF
+
+test -s user-management/fixme.env ||
+	create 0600 user-management/fixme.env cat <<-EOF
+		SERVICE_DB_PASSWORD="$(cat user-management/password.txt)"
+EOF

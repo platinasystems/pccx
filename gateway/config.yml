@@ -1,0 +1,120 @@
+server:
+  port: 9999
+  ssl:
+    enabled: true
+    key-store: classpath:keystore.jks
+    key-alias: selfsigned
+    keyStoreType: JKS
+  error:
+    include-message: always
+
+spring:
+  profiles: docker
+  application:
+    name: gateway
+  cloud:
+    config:
+      uri: http://localhost:8888
+      discovery:
+        enabled: false
+    gateway:
+      filters:
+        cors:
+          enable: true
+      routes:
+        filters:
+        - JWTFilter.java
+      discovery:
+        locator:
+          lower-case-service-id: true
+          enabled: true
+      streaming-media-types: text/plain
+      httpclient:
+        websocket:
+          max-frame-payload-length: 6553600
+
+security:
+  enable: true
+  permissions: true
+  auth:
+    url: http://localhost:9999/security/auth
+  validate:
+    url: http://localhost:8082/validate
+  userManagement:
+    url: http://localhost:8083/user
+  header: Authorization
+  operation: Operation
+  rest: Rest
+  user: user
+  timeout:
+    socket: 5000
+    connection: 5000
+  skipipsourcecheck: null
+  endpoint:
+    skipchek: /user-management/user/set-password;/user-management/user/recovery;/user-management/swagger;/user-management/tenant/auth-profiles;/security/auth;/security/validate;/security/swagger;/pcc-ui-graph/dashboard;/pcc-ui-graph/flow-logs;/pcc-ui-graph/manifest.js;/pcc-ui-graph/vendor.js;/pcc-ui-graph/app.js;/mailer/mail;/pccserver/hardware-inventory;/gui;/platina-monitor/swagger/;/platina-executor/swagger/;/pccserver/swagger;/maas/swagger;/key-manager/swagger;/monitor/swagger
+    strip: null
+    https:
+      forward:
+        skip: /test
+
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 20000
+        readTimeout: 20000
+
+routing:
+  routes: null
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka
+    register-with-eureka: true
+    fetch-registry: true
+    registryFetchIntervalSeconds: 5
+  instance:
+    hostname: gateway
+    nonSecurePortEnabled: false
+    securePortEnabled: true
+    securePort: ${server.port}
+
+ribbon:
+  ServerListRefreshInterval: 5000
+
+logs:
+  appender:
+    stdout:
+      enabled: true
+      level: TRACE
+    default:
+      enabled: true
+      level: INFO
+      maxfilesize: 25MB
+      totalsizecap: 1GB
+    detailed:
+      historypattern: yyyy-MM-dd
+      enabled: true
+      level: TRACE
+      maxhistory: 4
+      maxfilesize: 25MB
+      totalsizecap: 100MB
+    error:
+      enabled: true
+      maxfilesize: 25MB
+      totalsizecap: 400MB
+
+management:
+  endpoint:
+    shutdown:
+      enabled: true
+    health:
+      enabled: true
+    info:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include:
+        - '*'

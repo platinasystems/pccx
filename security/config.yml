@@ -1,0 +1,84 @@
+server:
+  port: 8082
+  max-http-header-size: 65536
+  error:
+    include-message: always
+
+spring:
+  profiles: docker
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          lob:
+            non_contextual_creation: true
+  datasource:
+    url: jdbc:postgresql://postgres-db/jwt
+    driver-class-name: org.postgresql.Driver
+  application:
+    name: security
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://registry:8761/eureka
+
+auth:
+  service:
+    okta:
+      domain: null
+      token: null
+    ldap:
+      url: null
+
+jwt:
+  header: Authorization
+  operation: Operation
+  rest: Rest
+  wildcard: '*'
+  secret: mySecret
+  expiration: 604800
+  route:
+    authentication:
+      path: /auth
+      refresh: /refresh
+      validate: /validate
+      recovery: /recovery
+
+logs:
+  appender:
+    stdout:
+      enabled: true
+      level: TRACE
+    default:
+      enabled: true
+      level: INFO
+      maxfilesize: 25MB
+      totalsizecap: 100MB
+    detailed:
+      historypattern: yyyy-MM-dd
+      enabled: true
+      level: TRACE
+      maxhistory: 4
+      maxfilesize: 25MB
+      totalsizecap: 50MB
+    error:
+      enabled: true
+      maxfilesize: 25MB
+      totalsizecap: 100MB
+
+management:
+  endpoint:
+    shutdown:
+      enabled: true
+    health:
+      enabled: true
+    info:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include:
+        - '*'

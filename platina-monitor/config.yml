@@ -1,0 +1,278 @@
+spring:
+  profiles: docker
+
+application:
+  local:
+    address: 127.0.0.1
+    port: 8995
+    secureport: 0
+    runmode: dev
+
+db:
+  name: platina_monitor
+  host: localhost
+  port: 5432
+  sslmode: disable
+  connectionTimeout: 10
+
+registry:
+  skip: false
+  address: 127.0.0.1
+  port: 8761
+
+monitor:
+  query:
+    filter:
+      owner:
+        enable: true
+  mailer:
+    templateId: 2
+    templateBody: alert
+    address: 127.0.0.1
+    port: 8787
+    protocol: http
+  pcc:
+    address: 127.0.0.1
+    port: 8989
+    protocol: http
+    endpoint: notifications
+  alerts:
+    minRepeatInterval: 10m
+    topic: monitor-alerts
+    kafka:
+      registries:
+      - host: localhost
+        port: 8081
+        protocol: http
+      brokers:
+      - host: localhost
+        port: 9092
+        protocol: null
+    default:
+    - name: cpu high temp
+      repeatInterval: once
+      groups:
+      - name: cpu high temp
+        rules:
+        - alert: cpuTemp
+          expr: cpuTemp > 80
+          for: 15m
+          labels:
+            severity: error
+          annotations:
+            summary: Instance {{ $labels.instance }} - high load average
+            description: '{{ $labels.instance  }} (measured by {{ $labels.job }})
+              has high value'
+      tenant: 1
+      owner: 1
+    - name: memory high usage
+      repeatInterval: once
+      default: false
+      groups:
+      - name: memory high usage
+        rules:
+        - alert: realUsedMem
+          expr: '{job="summary",__name__="realUsedMem"} > 70'
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: Node {{ $labels.nodeName }} high memory usage warning
+            description: Node {{ $labels.nodeName  }} memory usage is currently {{
+              $value | printf "%.2f" }}%
+      tenant: 1
+      owner: 1
+    - name: memory very high usage
+      repeatInterval: once
+      default: false
+      groups:
+      - name: memory very high usage
+        rules:
+        - alert: realUsedMem
+          expr: '{job="summary",__name__="realUsedMem"} > 90'
+          for: 15m
+          labels:
+            severity: error
+          annotations:
+            summary: Node {{ $labels.nodeName }} high memory usage alarm
+            description: Node {{ $labels.nodeName  }} memory usage is currently {{
+              $value | printf "%.2f" }}%
+      tenant: 1
+      owner: 1
+    - name: drive decreased
+      repeatInterval: once
+      groups:
+      - name: drive decreased
+        rules:
+        - alert: drive decreased
+          expr: numDrives{job="storage"} < avg_over_time(numDrives{job="storage"}[5m])
+          for: 5s
+          labels:
+            severity: warning
+          annotations:
+            summary: Drive decreased in node {{ $labels.nodeName }}
+            description: The drives number for node {{ $labels.nodeName }} decreased
+              to {{ $value }}
+      tenant: 1
+      owner: 1
+    - name: osds down/out
+      repeatInterval: 1d
+      groups:
+      - name: osds down/out
+        rules:
+        - alert: osds down/out
+          expr: '{job="ceph-metrics",__name__=~"osdNodes:.+:numOsdsNotUp"} > 0 or
+            {job="ceph-metrics",__name__=~"osdNodes:.+:numOsdsOut"} > 0'
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Node {{ $labels.name }} ODSs down/out
+            description: the node {{ $labels.name }} has {{ $value }} OSDs currently
+              down/out
+      tenant: 1
+      owner: 1
+    - name: ceph pools high usage
+      repeatInterval: 1d
+      groups:
+      - name: ceph pool usage 80%
+        rules:
+        - alert: pool usage 80%
+          expr: '{job="ceph-metrics",__name__=~"pools:.+:quotaUsage"} > 80'
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: Ceph Pool {{ $labels.name }} - high usage
+            description: 'The ceph pool {{ $labels.name }} usage is greather than
+              80% (current value: {{ $value | printf "%.2f" }}%)'
+      tenant: 1
+      owner: 1
+    - name: ceph pools very high usage
+      repeatInterval: 1d
+      groups:
+      - name: ceph pool usage 90%
+        rules:
+        - alert: pool usage 90%
+          expr: '{job="ceph-metrics",__name__=~"pools:.+:quotaUsage"} > 90'
+          for: 1m
+          labels:
+            severity: error
+          annotations:
+            description: 'The ceph pool {{ $labels.name }} usage is greather than
+              90% (current value: {{ $value | printf "%.2f" }}%)'
+            summary: Ceph Pool {{ $labels.name }} - very high usage
+      tenant: 1
+      owner: 1
+      notification:
+        onAlert:
+          topicMessage:
+            topic: summary
+            field: overallStatus.messages
+      sendResolved: false
+  kafka:
+    registries:
+    - host: localhost
+      port: 8081
+      protocol: http
+    brokers:
+    - host: localhost
+      port: 9092
+      protocol: null
+    topics:
+    - name: processes
+      skipAggregation: true
+    - name: sensor
+      skipAggregation: true
+    - name: storage
+      skipAggregation: true
+    - name: system
+      skipAggregation: true
+    - name: cpu
+      skipAggregation: true
+    - name: disks
+      skipAggregation: true
+    - name: memory
+      skipAggregation: true
+    - name: network
+    - name: ksm
+      skipAggregation: true
+    - name: partitions
+      skipAggregation: true
+    - name: pccserver-portus_info
+      skipAggregation: true
+    - name: podDetails-2
+      skipAggregation: true
+    - name: pccserver-nodestatus
+      skipPrometheus: true
+    - name: kclusterdetails
+      skipPrometheus: true
+    - name: summary
+      metrics:
+      - timestamp
+    - name: ceph-metrics
+      alertAnnotations:
+      - type: pccObject
+        name: Ceph Cluster
+        value: pccObjectName
+        pccObjectType: CephCluster
+        matching:
+          child:
+            pccObjectType: Node
+            pccObjectName: $nodeName
+    - name: haproxy
+      skipAggregation: false
+      skipPrometheus: false
+    poolsize: 250
+  prometheus:
+    promtool: /home/promtool
+    server:
+      host: localhost
+      port: 9090
+      protocol: http
+    pushgateway:
+      chunkSize: 500
+      hosts:
+      - host: localhost
+        port: 9091
+        protocol: http
+    rules:
+      dir: /home/prometheus/rules
+    poolsize: 25
+    targets:
+      dir: /home/prometheus/targets
+  aggregator:
+    poolSize: 250
+    AggregationFunction: average
+    Mediator:
+      policy: percentage
+      parameters:
+        max: 30
+      timeout: 180
+    Notifier: kafka
+
+logs:
+  appender:
+    stdout:
+      enabled: true
+      level: TRACE
+    default:
+      enabled: true
+      level: INFO
+      maxfilesize: 500MB
+      totalsizecap: 1GB
+    detailed:
+      enabled: true
+      level: DEBUG
+      maxfilesize: 500MB
+      totalsizecap: 2GB
+    error:
+      enabled: true
+      level: ERROR
+      maxfilesize: 500MB
+      totalsizecap: 2GB
+
+redis:
+  host: localhost
+  port: 6379
+  db: 1

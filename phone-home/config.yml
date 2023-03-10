@@ -1,0 +1,80 @@
+application:
+  local:
+    address: 127.0.0.1
+    port: 8383
+    secureport: 0
+  groupId: local
+
+registry:
+  skip: false
+  address: 127.0.0.1
+  port: 8761
+
+gateway:
+  address: 127.0.0.1
+  port: 9999
+
+phone-home:
+  collectionEnabled: true
+  submitEnabled: true
+  dailySubmission: true
+  dailyJobTime: 720
+  jobCleanupAge: -2
+  platinaDestination: true
+  https: true
+  httpsSkipVerify: false
+  destinationHost: ''
+  destinationPort: 443
+  destinationBucket: phone-home
+  dareKey: ''
+  proxyType: environment
+  proxyUser: ''
+  proxyPassword: ''
+  proxyHost: ''
+  proxyPort: 8080
+  stage: /mnt/data
+  services:
+  - pccserver
+  - registry
+  - gateway
+  - key-manager
+  - maas
+  - mailer
+  - monitor
+  - platina-monitor
+  - security
+  - user-management
+  - platina-executor
+  servicesBlacklist:
+  - phone-home
+  - pcc-ui
+  - node-exporter
+  - cadvisor
+
+logs:
+  appender:
+    stdout:
+      enabled: true
+      level: TRACE
+    default:
+      enabled: true
+      level: INFO
+      maxfilesize: 25MB
+      totalsizecap: 1GB
+    detailed:
+      enabled: true
+      level: TRACE
+      maxfilesize: 25MB
+      totalsizecap: 100MB
+    error:
+      enabled: true
+      level: ERROR
+      maxfilesize: 25MB
+      totalsizecap: 400MB
+
+db:
+  name: phdb
+  host: localhost
+  port: 5432
+  sslmode: disable
+  connectionTimeout: 10
