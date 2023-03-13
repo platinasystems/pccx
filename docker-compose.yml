@@ -67,19 +67,30 @@ secrets:
     file: ./user-management/password.txt
 
 x-custom:
-- &tlsx-tap-cap
-  cap_add: [ ALL ]
-  devices: [ /dev/net/tun ]
-  privileged: true
-  user: "0:0"
-- &tlsx-environment
-  TLSX_CERT_FILE: /run/secrets/tlsx_cert
-  TLSX_KEY_FILE: /run/secrets/tlsx_key
-  TLSX_SUBSCRIBERS_FILE: /tlsx/subscribers
-  TLSX_SUBSCRIPTIONS_FILE: /tlsx/subscriptions
-- &tlsx-fet "${TLSX_FET:-10.100.1.1}"
-- &tlsx-image ${TLSX_IMAGE:-platinadownload.auctacognitio.com/tlsx}
-- &tlsx-verbose "-verbose=${TLSX_VERBOSE:-false}"
+- &minio-environment
+  MINIO_CONFIG_ENV_FILE: "/run/secrets/minio_config"
+- &postgres-environment
+  POSTGRES_DB: ${POSTGRES_DB:-postgres}
+  POSTGRES_DB_HOST: postgres
+  POSTGRES_USER: ${POSTGRES_USER:-postgres}
+  POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+- &pub-gpg-key ${PUB_GPG_KEY:-./phone-home/platina_pubkey.asc}:/root/.gnupg/pubkey.asc:ro
+- &pub-ssh-id ./ssh/id_rsa.pub:/root/.ssh/id_rsa.pub:ro
+- &restart ${RESTART:-unless-stopped}
+- &secret-ssh-id
+  source: ssh_id
+  target: /root/.ssh/id_rsa
+
+x-custom-kafka:
+- &kafka-adv-host ${KAFKA_ADV_HOST:-kafka}
+- &kafka-zookeeper-connect ${KAFKA_ZOOKEEPER_CONNECT:-kafka}
+- &kafka-zookeeper-host ${KAFKA_ZOOKEEPER_HOST:-kafka}
+- &kafka-broker-port ${KAFKA_BROKER_PORT:-7092}
+- &kafka-connect-port ${KAFKA_CONNECT_PORT:-7083}
+- &kafka-registry-port ${KAFKA_REGISTRY_PORT:-8081}
+- &kafka-rest-port ${KAFKA_REST_PORT:-7082}
+- &kafka-web-port ${KAFKA_WEB_PORT:-3040}
+- &kafka-zk-port ${KAFKA_ZK_PORT:-3181}
 - &kafka-environment
   # The basic auth password to access on UI Landoop ( username is kafka )
   # FIXME <https://caddyserver.com/docs/caddyfile/directives/basicauth>
@@ -94,9 +105,9 @@ x-custom:
   # The message max size. The default value is 1000012 bytes (976 KB) ->
   # set as 15728640 bytes (15 MB)
   KAFKA_MESSAGE_MAX_BYTES: 15728640
-  ADV_HOST: *tlsx-fet
-  KAFKA_ZOOKEEPER_CONNECT: *tlsx-fet
-  ZOOKEEPER_HOST: *tlsx-fet
+  ADV_HOST: *kafka-adv-host
+  KAFKA_ZOOKEEPER_CONNECT: *kafka-zookeeper-connect
+  ZOOKEEPER_HOST: *kafka-zookeeper-host
   # Disable Running tests so the cluster starts faster
   RUNTESTS: 0
   # Enable running 5 file source connectors that bring application logs
@@ -115,21 +126,27 @@ x-custom:
   #CONNECT_HEAP: 3G
   W_PERIOD_SECS: 5
   W_ITERATIONS: 180
-  CONNECT_PORT: 0
-  REST_PORT: 0
-- &minio-environment
-  MINIO_CONFIG_ENV_FILE: "/run/secrets/minio_config"
-- &postgres-environment
-  POSTGRES_DB: ${POSTGRES_DB:-postgres}
-  POSTGRES_DB_HOST: localhost
-  POSTGRES_USER: ${POSTGRES_USER:-postgres}
-  POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
-- &pub-gpg-key ${PUB_GPG_KEY:-./phone-home/platina_pubkey.asc}:/root/.gnupg/pubkey.asc:ro
-- &pub-ssh-id ./ssh/id_rsa.pub:/root/.ssh/id_rsa.pub:ro
-- &restart ${RESTART:-unless-stopped}
-- &secret-ssh-id
-  source: ssh_id
-  target: /root/.ssh/id_rsa
+  BROKER_PORT: *kafka-broker-port
+  CONNECT_PORT: *kafka-connect-port
+  REGISTRY_PORT: *kafka-registry-port
+  REST_PORT: *kafka-rest-port
+  WEB_PORT: *kafka-web-port
+  ZK_PORT: *kafka-zk-port
+
+x-custom-tlsx:
+- &tlsx-tap-cap
+  cap_add: [ ALL ]
+  devices: [ /dev/net/tun ]
+  privileged: true
+  user: "0:0"
+- &tlsx-environment
+  TLSX_CERT_FILE: /run/secrets/tlsx_cert
+  TLSX_KEY_FILE: /run/secrets/tlsx_key
+  TLSX_SUBSCRIBERS_FILE: /tlsx/subscribers
+  TLSX_SUBSCRIPTIONS_FILE: /tlsx/subscriptions
+- &tlsx-fet "${TLSX_FET:-10.100.1.1}"
+- &tlsx-image ${TLSX_IMAGE:-platinadownload.auctacognitio.com/tlsx}
+- &tlsx-verbose "-verbose=${TLSX_VERBOSE:-false}"
 
 x-custom-data:
 - &alertmanager-data ./alertmanager/data:/alertmanager
@@ -200,7 +217,53 @@ services:
     depends_on: [ bex ]
     image: *tlsx-image
     restart: *restart
-    networks: [ ben ]
+    networks:
+      ben:
+        aliases:
+        - adminer
+        - alertmanager
+        - cadvisor
+        - gateway
+        - kafka
+        - "key-manager"
+        - maas
+        - mailer
+        - minio
+        - monitor
+        - "node-exporter"
+        - pccserver
+        - "pcc-ui"
+        - "phone-home"
+        - "platina-executor"
+        - "platina-monitor"
+        - postgres
+        - prometheus
+        - pushgateway
+        - redis
+        - registry
+        - security
+        - "user-management"
+    expose:
+    - *kafka-broker-port
+    - *kafka-connect-port
+    - *kafka-registry-port
+    - *kafka-rest-port
+    - *kafka-web-port
+    - *kafka-zk-port
+    - "443"   # pcc-ui
+    - "5432"  # postgres
+    - "8080"  # cadvisor
+    - "8082"  # security (+ kafka?)
+    - "8383"  # phone-home
+    - "8761"  # eureka
+    - "8989"  # pccserver
+    - "8998"  # platina-executor
+    - "9000"  # minio
+    - "9090"  # prometheus
+    - "9091"  # pushgateway
+    - "9093"  # alert-manager
+    - "9100"  # node-exporter
+    - "9999"  # gateway
     ports:
     - ${GATEWAY_PORT:-443}:9999
     << : *tlsx-tap-cap
@@ -222,7 +285,9 @@ services:
     depends_on: [ fex ]
     image: *tlsx-image
     restart: *restart
-    networks: [ default, ben ]
+    networks:
+      default:
+      ben:
     << : *tlsx-tap-cap
     secrets:
     - tlsx_cert
@@ -264,7 +329,7 @@ services:
     container_name: prometheus
     image: ${PROMETHEUS_IMAGE:-prom/prometheus}
     restart: *restart
-    network_mode: "service:fet"
+    network_mode: "service:bet"
     configs: [ prometheus_config ]
     volumes:
     - *prometheus-data
@@ -285,8 +350,10 @@ services:
     container_name: kafka
     image: ${KAFKA_IMAGE:-landoop/fast-data-dev}
     restart: *restart
-    network_mode: "service:fet"
+    network_mode: "service:bet"
     platform: linux/amd64
+    privileged: true
+    user: "0:0"
     env_file: kafka/fixme.env
     environment:
       << : *kafka-environment
@@ -459,7 +526,7 @@ services:
       SERVICE_CONFIG_URI: /config.yml
       SERVICE_CONFIG_BRANCH: master
       SERVICE_DB: ${PCC_DB:-pccdb}
-      SERVICE_DB_HOST: localhost
+      SERVICE_DB_HOST: postgres
       SERVICE_DB_USER: ${PCC_DB_USER:-pcc}
       SERVICE_DB_PASSWORD_FILE: /run/secrets/pccserver_password
       SERVICE_DEBUG_ENABLED: ${PCC_DEBUG_ENABLED:-false}
@@ -525,7 +592,7 @@ services:
       MINIO_PERIOD_SECS: 3
       SERVICE_CONFIG_URI: /config.yml
       SERVICE_DB: ${USERMANAGEMENT_DB:-jwt}
-      SERVICE_DB_HOST: localhost
+      SERVICE_DB_HOST: postgres
       SERVICE_DB_USER: ${USERMANAGEMENT_DB_USER:-jwtuser}
       SERVICE_DB_PASSWORD_FILE: /run/secrets/user_management_password
       SERVICE_DEBUG_ENABLED: ${USERMANAGEMENT_DEBUG_ENABLED:-false}
@@ -549,7 +616,7 @@ services:
       ADMIN_PASSWD_FILE: /run/secrets/security_admin_password
       SERVICE_CONFIG_URI: /config.yml
       SERVICE_DB: ${SECURITY_DB:-jwt}
-      SERVICE_DB_HOST: localhost
+      SERVICE_DB_HOST: postgres
       SERVICE_DB_USER: ${SECURITY_DB_USER:-jwtuser}
       SERVICE_DB_PASSWORD_FILE: /run/secrets/security_password
       SERVICE_DEBUG_ENABLED: ${SECURITY_DEBUG_ENABLED:-false}
@@ -570,7 +637,7 @@ services:
       << : *postgres-environment
       SERVICE_CONFIG_URI: /config.yml
       SERVICE_DB: ${KEYMANAGER_DB:-key_manager}
-      SERVICE_DB_HOST: localhost
+      SERVICE_DB_HOST: postgres
       SERVICE_DB_USER: ${KEYMANAGER_DB_USER:-jwtuser}
       SERVICE_DB_PASSWORD_FILE: /run/secrets/key_manager_password
       SERVICE_DEBUG_ENABLED: ${KEYMANAGER_DEBUG_ENABLED:-false}
@@ -623,7 +690,7 @@ services:
       SERVICE_CONFIG_URI: /config.yml
       SERVICE_CONFIG_BRANCH: ${PLATINAEXECUTOR_CONFIG_BRANCH:-master}
       SERVICE_DB: ${PLATINAEXECUTOR_DB:-executordb}
-      SERVICE_DB_HOST: localhost
+      SERVICE_DB_HOST: postgres
       SERVICE_DB_USER: ${PLATINAEXECUTOR_DB_USER:-executor}
       SERVICE_DB_PASSWORD_FILE: /run/secrets/platina_executor_password
       SERVICE_DEBUG_ENABLED: ${PLATINAEXECUTOR_DEBUG_ENABLED:-false}
@@ -670,7 +737,7 @@ services:
       SERVICE_CONFIG_URI: /config.yml
       SERVICE_CONFIG_BRANCH: ${PLATINAMONITOR_CONFIG_BRANCH:-master}
       SERVICE_DB: ${PLATINAMONITOR_DB:-platina_monitor}
-      SERVICE_DB_HOST: localhost
+      SERVICE_DB_HOST: postgres
       SERVICE_DB_USER: ${PLATINAMONITOR_DB_USER:-monitor}
       SERVICE_DB_PASSWORD_FILE: /run/secrets/platina_monitor_password
       SERVICE_DEBUG_ENABLED: ${PLATINAMONITOR_DEBUG_ENABLED:-false}
@@ -694,7 +761,7 @@ services:
       SERVICE_CONFIG_URI: /config.yml
       SERVICE_CONFIG_BRANCH: ${MAAS_CONFIG_BRANCH:-master}
       SERVICE_DB: ${MAAS_DB:-maas}
-      SERVICE_DB_HOST: localhost
+      SERVICE_DB_HOST: postgres
       SERVICE_DB_USER: ${MAAS_DB_USER:-pcc}
       SERVICE_DB_PASSWORD_FILE: /run/secrets/maas_password
       SERVICE_DEBUG_ENABLED: ${MAAS_DEBUG_ENABLED:-false}
@@ -726,7 +793,7 @@ services:
       SERVICES: "platina-monitor,key-manager,monitor,registry,maas,node-exporter,mailer,user-management,platina-executor,cadvisor,gateway,pccserver,security"
       SERVICE_CONFIG_URI: /config.yml
       SERVICE_DB: ${PHONEHOME_DB:-phone_home}
-      SERVICE_DB_HOST: localhost
+      SERVICE_DB_HOST: postgres
       SERVICE_DB_USER: ${PHONEHOME_DB_USER:-phuser}
       SERVICE_DB_PASSWORD_FILE: /run/secrets/phone_home_password
       SERVICE_DEBUG_ENABLED: ${PHONEHOME_DEBUG_ENABLED:-false}

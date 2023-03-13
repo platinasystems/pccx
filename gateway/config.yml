@@ -14,7 +14,7 @@ spring:
     name: gateway
   cloud:
     config:
-      uri: http://localhost:8888
+      uri: http://configserver:8888
       discovery:
         enabled: false
     gateway:
@@ -37,11 +37,11 @@ security:
   enable: true
   permissions: true
   auth:
-    url: http://localhost:9999/security/auth
+    url: http://gateway:9999/security/auth
   validate:
-    url: http://localhost:8082/validate
+    url: http://security:8082/validate
   userManagement:
-    url: http://localhost:8083/user
+    url: http://user-management:8083/user
   header: Authorization
   operation: Operation
   rest: Rest
@@ -70,7 +70,7 @@ routing:
 eureka:
   client:
     serviceUrl:
-      defaultZone: http://localhost:8761/eureka
+      defaultZone: http://api-registry:8761/eureka
     register-with-eureka: true
     fetch-registry: true
     registryFetchIntervalSeconds: 5
