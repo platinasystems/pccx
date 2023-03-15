@@ -310,7 +310,7 @@ services:
     - ./prometheus/data:/prometheus
     - &prometheus-rules ./prometheus/rules:/etc/prometheus/rules/
     command: >-
-      --config.file=/config.yml
+      --config.file=/prometheus_config
       --web.enable-lifecycle
       --storage.tsdb.retention.time=15d
 
@@ -424,7 +424,7 @@ services:
     volumes:
     - ./alertmanager/data:/alertmanager
     command:
-    - '--config.file=/config.yml'
+    - '--config.file=/alertmanager_config'
     - '--storage.path=/alertmanager'
 
   pushgateway:
@@ -459,7 +459,7 @@ services:
     configs: [ gateway_config ]
     env_file: gateway/fixme.env
     environment:
-      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_CONFIG_URI: /gateway_config
       SERVICE_CONFIG_BRANCH: master
       SERVICE_DEBUG_ENABLED: ${GATEWAY_DEBUG_ENABLED:-false}
       KEYSTORE_PASSWORD_FILE: /run/secrets/gateway_password
@@ -498,7 +498,7 @@ services:
       << : *kafka-environment
       << : *minio-environment
       << : *postgres-environment
-      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_CONFIG_URI: /pccserver_config
       SERVICE_CONFIG_BRANCH: master
       SERVICE_DB: ${PCC_DB:-pccdb}
       SERVICE_DB_HOST: postgres
@@ -539,7 +539,7 @@ services:
     env_file: mailer/fixme.env
     environment:
       << : *postgres-environment
-      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_CONFIG_URI: /mailer_config
       SERVICE_USER: ${MAILER_USER:-pcc_notifications@platinasystems.com}
       SERVICE_PASSWORD_FILE: /run/secrets/mailer_password
       SERVICE_DEBUG_ENABLED: ${MAILER_DEBUG_ENABLED:-false}
@@ -565,7 +565,7 @@ services:
       << : *postgres-environment
       MINIO_ITERATIONS: 90
       MINIO_PERIOD_SECS: 3
-      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_CONFIG_URI: /user_management_config
       SERVICE_DB: ${USERMANAGEMENT_DB:-jwt}
       SERVICE_DB_HOST: postgres
       SERVICE_DB_USER: ${USERMANAGEMENT_DB_USER:-jwtuser}
@@ -589,7 +589,7 @@ services:
     environment:
       << : *postgres-environment
       ADMIN_PASSWD_FILE: /run/secrets/security_admin_password
-      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_CONFIG_URI: /security_config
       SERVICE_DB: ${SECURITY_DB:-jwt}
       SERVICE_DB_HOST: postgres
       SERVICE_DB_USER: ${SECURITY_DB_USER:-jwtuser}
@@ -610,7 +610,7 @@ services:
     env_file: key-manager/fixme.env
     environment:
       << : *postgres-environment
-      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_CONFIG_URI: /key_manager_config
       SERVICE_DB: ${KEYMANAGER_DB:-key_manager}
       SERVICE_DB_HOST: postgres
       SERVICE_DB_USER: ${KEYMANAGER_DB_USER:-jwtuser}
@@ -634,7 +634,7 @@ services:
     platform: linux/amd64
     configs: [ monitor_config ]
     environment:
-      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_CONFIG_URI: /monitor_config
       SERVICE_CONFIG_BRANCH: master
       SERVICE_DEBUG_ENABLED: ${MONITOR_DEBUG_ENABLED:-false}
       PLATINA_ITERATIONS: 90
@@ -662,7 +662,7 @@ services:
       KAFKA_PERIOD_SECS: 3
       PLATINA_ITERATIONS: 90
       PLATINA_PERIOD_SECS: 3
-      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_CONFIG_URI: /platina_executor_config
       SERVICE_CONFIG_BRANCH: ${PLATINAEXECUTOR_CONFIG_BRANCH:-master}
       SERVICE_DB: ${PLATINAEXECUTOR_DB:-executordb}
       SERVICE_DB_HOST: postgres
@@ -709,7 +709,7 @@ services:
       PROMETHEUS_PERIOD_SECS: 3
       PROMETHEUSGW_ITERATIONS: 180
       PROMETHEUSGW_PERIOD_SECS: 3
-      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_CONFIG_URI: /platina_monitor_config
       SERVICE_CONFIG_BRANCH: ${PLATINAMONITOR_CONFIG_BRANCH:-master}
       SERVICE_DB: ${PLATINAMONITOR_DB:-platina_monitor}
       SERVICE_DB_HOST: postgres
@@ -733,7 +733,7 @@ services:
     env_file: maas/fixme.env
     environment:
       << : *postgres-environment
-      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_CONFIG_URI: /maas_config
       SERVICE_CONFIG_BRANCH: ${MAAS_CONFIG_BRANCH:-master}
       SERVICE_DB: ${MAAS_DB:-maas}
       SERVICE_DB_HOST: postgres
@@ -766,7 +766,7 @@ services:
     environment:
       << : *minio-environment
       SERVICES: "platina-monitor,key-manager,monitor,registry,maas,node-exporter,mailer,user-management,platina-executor,cadvisor,gateway,pccserver,security"
-      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_CONFIG_URI: /phone_home_config
       SERVICE_DB: ${PHONEHOME_DB:-phone_home}
       SERVICE_DB_HOST: postgres
       SERVICE_DB_USER: ${PHONEHOME_DB_USER:-phuser}
@@ -787,7 +787,7 @@ services:
     platform: linux/amd64
     configs: [ pcc_ui_config ]
     environment:
-      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_CONFIG_URI: /pcc_ui_config
       SERVICE_CONFIG_BRANCH: master
       SERVICE_DEBUG_ENABLED: ${PCCUI_DEBUG_ENABLED:-false}
       PLATINA_ITERATIONS: 200
