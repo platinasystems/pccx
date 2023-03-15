@@ -54,8 +54,8 @@ sprompt() {
 	
 if test ! -f tlsx/cert.pem; then
 	mkdir -p tlsx
-	docker run --rm -v ./tlsx:/tlsx ${TLSX_IMAGE} --state=/tlsx \
-		create-cert "$@"
+	docker run --rm --mount type=bind,source=${PWD}/tlsx,target=/tlsx ${TLSX_IMAGE} \
+		--state=/tlsx create-cert "$@"
 fi
 
 test -f ssh/id_rsa ||
