@@ -132,6 +132,7 @@ EOF
 test -s pccserver/fixme.env ||
 	create 0600 pccserver/fixme.env cat <<-EOF
 		SERVICE_DB_PASSWORD="$(cat pccserver/password.txt)"
+		POSTGRES_PASSWORD="$(cat pccserver/password.txt)"
 EOF
 
 test -s phone-home/fixme.env ||
