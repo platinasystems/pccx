@@ -355,8 +355,8 @@ logging_collector = on                  # Enable capturing of stderr and csvlog
                                         # (change requires restart)
 
 # These are only used if logging_collector is on:
-log_directory = '/var/lib/postgresql/logs'  # directory where log files are written,
-                                            # can be absolute or relative to PGDATA
+log_directory = 'logs'			# directory where log files are written,
+                                        # can be absolute or relative to PGDATA
 log_filename = 'postgresql-%a.log'      # log file name pattern,
                                         # can include strftime() escapes
 log_file_mode = 0600                    # creation mode for log files,

@@ -32,7 +32,7 @@ phone-home:
   proxyPassword: ''
   proxyHost: ''
   proxyPort: 8080
-  stage: /mnt/data
+  stage: /data
   services:
   - pccserver
   - registry
@@ -74,7 +74,7 @@ logs:
 
 db:
   name: phdb
-  host: localhost
+  host: postgres
   port: 5432
   sslmode: disable
   connectionTimeout: 10
