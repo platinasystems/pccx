@@ -67,30 +67,70 @@ secrets:
     file: ./user-management/password.txt
 
 x-custom:
-- &minio-environment
-  MINIO_CONFIG_ENV_FILE: "/run/secrets/minio_config"
-- &pccserver-data ./pccserver/data:/srv/pcc
-- &postgres-environment
-  POSTGRES_DB: ${POSTGRES_DB:-postgres}
-  POSTGRES_DB_HOST: postgres
-  POSTGRES_USER: ${POSTGRES_USER:-postgres}
-  POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
-- &pub-ssh-id ./ssh/id_rsa.pub:/root/.ssh/id_rsa.pub:ro
 - &restart ${RESTART:-unless-stopped}
-- &secret-ssh-id
-  source: ssh_id
-  target: /root/.ssh/id_rsa
-
-x-custom-kafka:
+- &bet-exposure
+  expose:
+  # :'<,'>!sort -r -t : -n -k 2
+  - &pcc-ui-port ${PCC_UI_PORT:-443}
+  - &kafka-landoop-port ${KAFKA_LANDOOP_PORT:-3030} # 8080 (caddy?)
+  - &postgres-port ${POSTGRES_PORT:-5432}
+  - &maas-port ${MAAS_PORT:-5980}
+  - &adminer-port ${ADMINER_PORT:-9082}
+  - &kafka-rest-port ${KAFKA_REST_PORT:-8081}
+  - &kafka-registry-port ${KAFKA_REGISTRY_PORT:-8082}
+  - &kafka-connect-port ${KAFKA_CONNECT_PORT:-8083}
+  - &cadvisor-port ${CADVISOR_PORT:-8085}
+  - &phone-home-port ${PHONE_HOME_PORT:-8383}
+  - &eureka-port ${EUREKA_PORT:-8761}
+  - &pccserver-port ${PCCSERVER_PORT:-8989}
+  - &platina-executor-port ${PLATINA_EXECUTOR_PORT:-8998}
+  - &minio-port ${MINIO_PORT:-9000}
+  - &kafka-supervisor-port ${KAFKA_SUPERVISOR_PORT:-9001}
+  - &kafka-zookeeper-port ${KAFKA_ZOOKEEPER_PORT:-2181}
+  - &prometheus-port ${PROMETHEUS_PORT:-9090}
+  - &pushgateway-port ${PUSHGATEWAY_PORT:-9091}
+  - &kafka-broker-port ${KAFKA_BROKER_PORT:-9092}
+  - &alertmanager-port ${ALERTMANAGER_PORT:-9093}
+  - &node-exporter-port ${NODE_EXPORTER_PORT:-9100}
+  - &kafka-jmx1-port ${KAFKA_JMX1_PORT:-9581}
+  - &kafka-jmx2-port ${KAFKA_JMX2_PORT:-9582}
+  - &kafka-jmx3-port ${KAFKA_JMX3_PORT:-9583}
+  - &kafka-jmx4-port ${KAFKA_JMX4_PORT:-9584}
+  - &kafka-jmx5-port ${KAFKA_JMX5_PORT:-9585}
+  - &gateway-port ${GATEWAY_PORT:-9999}
+  # observed listeners
+  # 3030 kafka-landoop
+  # 5432 postgres
+  # 6379 redis
+  # 8081 kafka-rest
+  # 8085 cadvisor
+  # 8761 eureka
+  # 9000 minio
+  # 9001 kafka-supervisor
+  # 9002 kafka-zookeeper
+  # 9090 prometheus
+  # 9091 pushgateway
+  # 9092 adminer
+  # 9093 alertmanager
+  # 9094 ?
+  # 9100 node-exporter
+  # 9583 kafka-jmx3
+- &fet-addr ${FET_ADDR:-10.100.1.1}
+- &tlsx-tap-cap
+  cap_add: [ ALL ]
+  devices: [ /dev/net/tun ]
+  privileged: true
+  user: "0:0"
+- &tlsx-environment
+  TLSX_CERT_FILE: /run/secrets/tlsx_cert
+  TLSX_KEY_FILE: /run/secrets/tlsx_key
+  TLSX_SUBSCRIBERS_FILE: /tlsx/subscribers
+  TLSX_SUBSCRIPTIONS_FILE: /tlsx/subscriptions
+- &tlsx-image ${TLSX_IMAGE:-platinadownload.auctacognitio.com/tlsx}
+- &tlsx-verbose -verbose=${TLSX_VERBOSE:-false}
 - &kafka-adv-host ${KAFKA_ADV_HOST:-127.0.0.1}
 - &kafka-zookeeper-connect ${KAFKA_ZOOKEEPER_CONNECT:-kafka}
 - &kafka-zookeeper-host ${KAFKA_ZOOKEEPER_HOST:-127.0.0.1}
-- &kafka-broker-port ${KAFKA_BROKER_PORT:-7092}
-- &kafka-connect-port ${KAFKA_CONNECT_PORT:-7083}
-- &kafka-registry-port ${KAFKA_REGISTRY_PORT:-8081}
-- &kafka-rest-port ${KAFKA_REST_PORT:-7082}
-- &kafka-web-port ${KAFKA_WEB_PORT:-3040}
-- &kafka-zk-port ${KAFKA_ZK_PORT:-3181}
 - &kafka-environment
   # The basic auth password to access on UI Landoop ( username is kafka )
   # FIXME <https://caddyserver.com/docs/caddyfile/directives/basicauth>
@@ -105,9 +145,9 @@ x-custom-kafka:
   # The message max size. The default value is 1000012 bytes (976 KB) ->
   # set as 15728640 bytes (15 MB)
   KAFKA_MESSAGE_MAX_BYTES: 15728640
-  ADV_HOST: *kafka-adv-host
-  KAFKA_ZOOKEEPER_CONNECT: *kafka-zookeeper-connect
-  ZOOKEEPER_HOST: *kafka-zookeeper-host
+  ADV_HOST: 127.0.0.1
+  KAFKA_ZOOKEEPER_CONNECT: 127.0.0.1
+  ZOOKEEPER_HOST: 127.0.0.1
   # Disable Running tests so the cluster starts faster
   RUNTESTS: 0
   # Enable running 5 file source connectors that bring application logs
@@ -130,23 +170,20 @@ x-custom-kafka:
   CONNECT_PORT: *kafka-connect-port
   REGISTRY_PORT: *kafka-registry-port
   REST_PORT: *kafka-rest-port
-  WEB_PORT: *kafka-web-port
-  ZK_PORT: *kafka-zk-port
-
-x-custom-tlsx:
-- &tlsx-tap-cap
-  cap_add: [ ALL ]
-  devices: [ /dev/net/tun ]
-  privileged: true
-  user: "0:0"
-- &tlsx-environment
-  TLSX_CERT_FILE: /run/secrets/tlsx_cert
-  TLSX_KEY_FILE: /run/secrets/tlsx_key
-  TLSX_SUBSCRIBERS_FILE: /tlsx/subscribers
-  TLSX_SUBSCRIPTIONS_FILE: /tlsx/subscriptions
-- &tlsx-fet "${TLSX_FET:-10.100.1.1}"
-- &tlsx-image ${TLSX_IMAGE:-platinadownload.auctacognitio.com/tlsx}
-- &tlsx-verbose "-verbose=${TLSX_VERBOSE:-false}"
+  SUPERVISOR_PORT: *kafka-supervisor-port
+  WEB_PORT: *kafka-landoop-port
+  ZK_PORT: *kafka-zookeeper-port
+- &minio-environment
+  MINIO_CONFIG_ENV_FILE: "/run/secrets/minio_config"
+- &postgres-environment
+  POSTGRES_DB: ${POSTGRES_DB:-postgres}
+  POSTGRES_DB_HOST: postgres
+  POSTGRES_USER: ${POSTGRES_USER:-postgres}
+  POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+- &pub-ssh-id ./ssh/id_rsa.pub:/root/.ssh/id_rsa.pub:ro
+- &secret-ssh-id
+  source: ssh_id
+  target: /root/.ssh/id_rsa
 
 services:
   bex:
@@ -217,27 +254,7 @@ services:
         - registry
         - security
         - "user-management"
-    expose:
-    - *kafka-broker-port
-    - *kafka-connect-port
-    - *kafka-registry-port
-    - *kafka-rest-port
-    - *kafka-web-port
-    - *kafka-zk-port
-    - "443"   # pcc-ui
-    - "5432"  # postgres
-    - "8080"  # cadvisor
-    - "8082"  # security (+ kafka?)
-    - "8383"  # phone-home
-    - "8761"  # eureka
-    - "8989"  # pccserver
-    - "8998"  # platina-executor
-    - "9000"  # minio
-    - "9090"  # prometheus
-    - "9091"  # pushgateway
-    - "9093"  # alert-manager
-    - "9100"  # node-exporter
-    - "9999"  # gateway
+    << : *bet-exposure
     ports:
     - ${GATEWAY_PORT:-443}:9999
     << : *tlsx-tap-cap
@@ -273,7 +290,7 @@ services:
     - start
     - tap
     - -a
-    - *tlsx-fet
+    - *fet-addr
     - "@fex"
 
   redis:
@@ -320,10 +337,16 @@ services:
     image: ${ADMINER_IMAGE:-adminer}
     restart: *restart
     network_mode: "service:bet"
+    command:
+    - "php"
+    - "-S"
+    - "[::]:9082"
+    - "-t"
+    - "/var/www/html"
 
   kafka:
     container_name: kafka
-    image: ${KAFKA_IMAGE:-landoop/fast-data-dev}
+    image: ${KAFKA_IMAGE:-platinadownload.auctacognitio.com/fast-data-dev:2.6.2}
     restart: *restart
     network_mode: "service:bet"
     platform: linux/amd64
@@ -517,8 +540,7 @@ services:
     - postgres_password
     - *secret-ssh-id
     volumes:
-    - *pccserver-data
-    - *pub-ssh-id
+    - ./pccserver/data:/srv/pcc
     - ./pccserver/logs:/home/logs
     - ops-playbooks:/home/ops
     - orchestration-playbooks:/home/orchestration
@@ -526,6 +548,7 @@ services:
     - kubespray-playbooks:/home/turnkey-kubespray
     - pccserver-playbooks:/home/ansible
     - pccserver-supervisor-config:/etc/supervisor/conf.d
+    - *pub-ssh-id
 
   mailer:
     container_name: mailer
@@ -673,8 +696,6 @@ services:
     - postgres_password
     - *secret-ssh-id
     volumes:
-    - *pccserver-data
-    - *pub-ssh-id
     - ./platina-executor/logs:/home/logs
     - /usr/bin/docker:/usr/bin/docker
     - /var/run/docker.sock:/var/run/docker.sock
@@ -683,6 +704,8 @@ services:
     - kubespray-playbooks:/home/turnkey-kubespray:ro
     - ops-playbooks:/home/ops:ro
     - orchestration-playbooks:/home/orchestration
+    - ./pccserver/data:/srv/pcc:ro
+    - *pub-ssh-id
 
   platina-monitor:
     container_name: platina-monitor
@@ -716,6 +739,8 @@ services:
       SERVICE_DB_USER: ${PLATINAMONITOR_DB_USER:-monitor}
       SERVICE_DB_PASSWORD_FILE: /run/secrets/platina_monitor_password
       SERVICE_DEBUG_ENABLED: ${PLATINAMONITOR_DEBUG_ENABLED:-false}
+      PLATINAMONITOR_DB_HOST: postgres
+      PHONEHOME_ACCESS_KEY: ${PHONEHOME_ACCESS_KEY:-admin}
     secrets: [ postgres_password ]
     volumes:
     - ./platina-monitor/logs:/home/logs
@@ -749,7 +774,7 @@ services:
     - *secret-ssh-id
     volumes:
     - ./maas/logs:/home/logs
-    - *pccserver-data
+    - ./pccserver/data:/srv/pcc:ro
     - *pub-ssh-id
 
   phone-home:
