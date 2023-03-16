@@ -138,6 +138,7 @@ EOF
 test -s phone-home/fixme.env ||
 	create 0600 phone-home/fixme.env cat <<-EOF
 		SERVICE_DB_PASSWORD="$(cat phone-home/password.txt)"
+		PHONEHOME_SECRET_KEY="$(cat phone-home/password.txt)"
 EOF
 
 test -s platina-executor/fixme.env ||
@@ -148,6 +149,7 @@ EOF
 test -s platina-monitor/fixme.env ||
 	create 0600 platina-monitor/fixme.env cat <<-EOF
 		SERVICE_DB_PASSWORD="$(cat platina-monitor/password.txt)"
+		PHONEHOME_SECRET_KEY="$(cat phone-home/password.txt)"
 EOF
 
 test -s security/fixme.env ||
