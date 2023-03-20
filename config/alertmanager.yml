@@ -42,5 +42,5 @@ receivers:
 
   - name: "monitor"
     webhook_configs:
-      - url: 'http://localhost:8995/alerts/fire'
+      - url: 'http://platina-monitor:8995/alerts/fire'
         send_resolved: true

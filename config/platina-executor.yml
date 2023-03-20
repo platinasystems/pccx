@@ -3,7 +3,7 @@ spring:
 
 application:
   local:
-    address: 127.0.0.1
+    address: 0.0.0.0
     port: 8998
     secureport: 0
     runmode: dev
@@ -11,20 +11,20 @@ application:
 
 registry:
   skip: false
-  address: 127.0.0.1
+  address: "api-registry"
   port: 8761
 
 gateway:
-  address: 127.0.0.1
+  address: gateway
   port: 9999
 
 kafka:
   schemaRegistries:
-  - host: localhost
+  - host: kafka
     port: 8081
     protocol: http
   brokers:
-  - host: localhost
+  - host: kafka
     port: 9092
 
 logs:
@@ -53,7 +53,7 @@ logs:
 
 db:
   name: executordb
-  host: localhost
+  host: postgres
   port: 5432
   sslmode: disable
   connectionTimeout: 10
@@ -62,7 +62,7 @@ db:
 
 ansible:
   delegatorUser: pcc
-  sshPrivateKeyFile: /root/.ssh/id_rsa_ansible
+  sshPrivateKeyFile: /root/.ssh/id_rsa
   sshUser: pcc
   dir: /home/ansible/infra
   inventory: /home/ansible/infra/inventory/sites/hosts.yml
@@ -75,9 +75,9 @@ ansible:
 
 resources:
 - name: id_rsa_ansible
-  path: /root/.ssh/id_rsa_ansible
+  path: /root/.ssh/id_rsa
 - name: id_rsa_ansible_pub
-  path: /root/.ssh/id_rsa_ansible_pub
+  path: /root/.ssh/id_rsa.pub
 
 tasks:
   poolSize: 6

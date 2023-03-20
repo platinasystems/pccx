@@ -3,21 +3,21 @@ spring:
 
 application:
   local:
-    address: 127.0.0.1
+    address: 0.0.0.0
     port: 8995
     secureport: 0
     runmode: dev
 
 db:
   name: platina_monitor
-  host: localhost
+  host: postgres
   port: 5432
   sslmode: disable
   connectionTimeout: 10
 
 registry:
   skip: false
-  address: 127.0.0.1
+  address: "api-registry"
   port: 8761
 
 monitor:
@@ -28,11 +28,11 @@ monitor:
   mailer:
     templateId: 2
     templateBody: alert
-    address: 127.0.0.1
+    host: "mailer"
     port: 8787
     protocol: http
   pcc:
-    address: 127.0.0.1
+    host: pccserver
     port: 8989
     protocol: http
     endpoint: notifications
@@ -41,11 +41,11 @@ monitor:
     topic: monitor-alerts
     kafka:
       registries:
-      - host: localhost
+      - host: kafka
         port: 8081
         protocol: http
       brokers:
-      - host: localhost
+      - host: kafka
         port: 9092
         protocol: null
     default:
@@ -172,11 +172,11 @@ monitor:
       sendResolved: false
   kafka:
     registries:
-    - host: localhost
+    - host: kafka
       port: 8081
       protocol: http
     brokers:
-    - host: localhost
+    - host: kafka
       port: 9092
       protocol: null
     topics:
@@ -227,13 +227,13 @@ monitor:
   prometheus:
     promtool: /home/promtool
     server:
-      host: localhost
+      host: prometheus
       port: 9090
       protocol: http
     pushgateway:
       chunkSize: 500
       hosts:
-      - host: localhost
+      - host: pushgateway
         port: 9091
         protocol: http
     rules:
@@ -273,6 +273,6 @@ logs:
       totalsizecap: 2GB
 
 redis:
-  host: localhost
+  host: redis
   port: 6379
   db: 1

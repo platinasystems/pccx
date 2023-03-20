@@ -10,18 +10,18 @@ server:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka
+      defaultZone: http://api-registry:8761/eureka
 
 monitor:
   scope: global
   kafka:
     schemaRegistry:
-      host: localhost
+      host: kafka
       port: 8081
       protocol: http
     schemaRegistryScanPeriod: 5
     brokers:
-    - host: localhost
+    - host: kafka
       port: 9092
   topic:
     defaultConf:
@@ -149,7 +149,7 @@ monitor:
   redis:
     poolSize: 10
     server:
-      host: localhost
+      host: redis
       port: 6379
     defaultSamplePerCache: 20
     defaultUpdateCachePeriod: 300
@@ -164,12 +164,12 @@ monitor:
     allowUnauthenticatedSessions: false
   microservices:
     mailer:
-      url: https://localhost:9999/mailer
+      url: https://mailer:9999/mailer
       endpoints:
         mail:
           endpoint: mail
     userManagement:
-      url: https://localhost:9999/user-management
+      url: https://user-management:9999/user-management
       endpoints:
         user:
           endpoint: user
@@ -224,4 +224,4 @@ phone-home:
   log:
     path: /home/logs
   storage:
-    endpoint: http://localhost:9000
+    endpoint: http://minio:9000

@@ -5,39 +5,39 @@ spring:
 
 application:
   local:
-    address: 127.0.0.1
+    address: 0.0.0.0
     port: 5980
     secureport: 0
   groupId: docker
   runmode: dev
 
 registry:
-  address: 127.0.0.1
+  address: "api-registry"
   port: 8761
 
 gateway:
-  address: 127.0.0.1
+  host: gateway
   port: 9999
 
 kafka:
   schemaRegistries:
-  - host: localhost
+  - host: kafka
     port: 8081
     protocol: http
   brokers:
-  - host: localhost
+  - host: kafka
     port: 9092
 
 db:
   name: maas
-  host: localhost
+  host: postgres
   port: 5432
   sslmode: disable
   connectionTimeout: 10
 
 ansible:
   delegatorUser: pcc
-  sshPrivateKeyFile: /root/.ssh/id_rsa_ansible
+  sshPrivateKeyFile: /root/.ssh/id_rsa
 
 maas:
   whitelist:

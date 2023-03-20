@@ -15,7 +15,7 @@ spring:
           lob:
             non_contextual_creation: true
   datasource:
-    url: jdbc:postgresql://postgres-db/jwt
+    url: jdbc:postgresql://postgres/jwt
     driver-class-name: org.postgresql.Driver
   application:
     name: security
@@ -23,7 +23,7 @@ spring:
 eureka:
   client:
     service-url:
-      defaultZone: http://registry:8761/eureka
+      defaultZone: http://api-registry:8761/eureka
 
 auth:
   service:

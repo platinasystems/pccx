@@ -7,7 +7,7 @@ server:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka
+      defaultZone: http://api-registry:8761/eureka
 
 keystore:
   pwd: aucta2018
@@ -29,7 +29,7 @@ spring:
           lob:
             non_contextual_creation: true
   datasource:
-    url: jdbc:postgresql://localhost:5432/key_manager
+    url: jdbc:postgresql://postgres:5432/key_manager
     driver-class-name: org.postgresql.Driver
   application:
     name: key-manager
@@ -89,4 +89,4 @@ phone-home:
   log:
     path: /home/logs
   storage:
-    endpoint: http://localhost:9000
+    endpoint: http://minio:9000

@@ -16,7 +16,7 @@ spring:
             non_contextual_creation: true
     database-platform: org.hibernate.dialect.PostgreSQLDialect
   datasource:
-    url: jdbc:postgresql://localhost/jwt
+    url: jdbc:postgresql://postgres/jwt
     driver-class-name: org.postgresql.Driver
   application:
     name: user-management
@@ -24,7 +24,7 @@ spring:
 storage:
   key: minio
   secret: miniominio
-  url: http://localhost:9000
+  url: http://minio:9000
   ssl: false
   adminPath: /home/mc
   adminHostName: platinastorage
@@ -32,7 +32,7 @@ storage:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka
+      defaultZone: http://api-registry:8761/eureka
 
 jwt:
   secret: mySecret
@@ -40,12 +40,12 @@ jwt:
   applicationExpiration: 220752000
 
 mailer:
-  url: https://localhost:9999/mailer/mail
+  url: https://gateway:9999/mailer/mail
 
 security:
   header: Authorization
   validate:
-    url: https://localhost:9999/security/validate
+    url: https://gateway:9999/security/validate
   pwd:
     lenght: 8
 
@@ -144,4 +144,4 @@ phone-home:
   log:
     path: /home/logs
   storage:
-    endpoint: http://localhost:9000
+    endpoint: http://minio:9000

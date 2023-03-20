@@ -1,10 +1,13 @@
 #!/bin/sh -e
 
-if test -r .env; then
-	source .env
-fi
+test ! -r /etc/pccx || . /etc/pccx
+test ! -r .env || . .env
 
+: ${PCCX_DATA:=${PWD}/data}
+: ${PCCX_SECRET:=${PWD}/secret}
 : ${TLSX_IMAGE:=platina.io/tlsx}
+: ${UID:=$(id -u)}
+: ${GID:=$(id -g)}
 
 if test $# -gt 0 -a "$1" = "help"; then
 	docker run --rm ${TLSX_IMAGE} help create-cert
@@ -22,31 +25,33 @@ create() {
 	fi
 }
 
-# Set variable named by last word of prompt.
+# Set variable named by first argument with remaining prompt.
 # e.g. this sets ${user} with input up to newline
 #
-#	prompt something something user
-#	> something something user: <input>
+#	prompt user name
+#	> Enter name: <input>
 #
 prompt() {
-	eval last=\${$#}
-	printf '%s: ' "$*"
-	eval read "${last}"
+	eval var=$1
+	shift
+	printf 'Enter %s: ' "$*"
+	eval read "${var}"
 }
 
-# Silently set variable named by last word of prompt.
+# Silently set variable named by first argument with remaining prompt.
 # e.g. this sets ${password} with non-echo'd input up to newline
 #
-#	sprompt something something password
-#	> something something password: <input>
+#	sprompt pw password
+#	> Enter password: <input>
 #
 sprompt() {
-	eval last=\${$#}
-	printf '%s: ' "$*"
+	eval var=$1
+	shift
+	printf 'Enter %s: ' "$*"
 	restore=`stty -g`
 	stty -echo
 	trap "stty ${restore}" EXIT
-	eval read -r "${last}"
+	eval read -r "${var}"
 	stty ${restore}
 	trap - EXIT
 	echo
@@ -54,30 +59,57 @@ sprompt() {
 	
 if test ! -f tlsx/cert.pem; then
 	mkdir -p tlsx
-	docker run --rm --mount type=bind,source=${PWD}/tlsx,target=/tlsx ${TLSX_IMAGE} \
-		--state=/tlsx create-cert "$@"
+	prompt alg alorithm '{ed25519, ecdsa256, ecdsa384, ecdsa512, rsa256, rsa384, rsa512 (default ed25519)'
+	: ${alg:=ed25519}
+	_fullname=$(id -F)
+	prompt fullname full name "(default ${fullname})"
+	: ${fullname:=${_fullname}}
+	prompt email email
+	: ${email:=unspecified}
+	_dns=$(hostname -f)
+	prompt dns host fully qualified domain name "${_dns}"
+	: ${dns:=${_dns}}
+	prompt city city
+	: ${city:=unspecified}
+	prompt state state or province
+	: ${state:=unspecified}
+	prompt country country
+	: ${country:=unspecified}
+	docker run --rm --user ${UID}:${GID} \
+		--mount type=bind,source=${PCCX_SECRET},target=/var/run/ko \
+		${TLSX_IMAGE} --state=/var/run/ko create-cert \
+			-alg "${alg}" \
+			-country "${country}" \
+			-dns "${dns}" \
+			-locality "${city}" \
+			-name "${fullname}" \
+			-organization "${organization}" \
+			-province "${state}"
 fi
 
-test -f ssh/id_rsa ||
-	ssh-keygen -q -t rsa -N '' -f ./ssh/id_rsa
+mkdir -p -m 0700 ${PCCX_SECRET}
+mkdir -p -m 0700 ${PCCX_SECRET}/fixme
 
-if test ! -s minio/config.env; then
-	prompt minio root user
-	sprompt minio root password
-	create 0600 minio/config.env cat <<-EOF
-		MINIO_ROOT_USER="$user"
+test -f ${PCCX_SECRET}/id_rsa ||
+	ssh-keygen -q -t rsa -N '' -f ${PCCX_SECRET}/id_rsa
+
+if test ! -s ${PCCX_SECRET}/minio.env; then
+	prompt username minio root user name
+	sprompt password minio root password
+	create 0600 ${PCCX_SECRET}/minio.env cat <<-EOF
+		MINIO_ROOT_USER="$username"
 		MINIO_ROOT_PASSWORD="${password}"
 		MINIO_VOLUMES=/data
 	EOF
-	test -s minio/config.env
+	test -s ${PCCX_SECRET}/minio.env
 fi
 
-if test ! -f postgres/password.txt; then
-	sprompt postgres password
-	create 0600 postgres/password.txt tr -d \\\\n <<-EOF
+if test ! -f ${PCCX_SECRET}/postgres.txt; then
+	sprompt password postgres password
+	create 0600 ${PCCX_SECRET}/postgres.txt tr -d \\\\n <<-EOF
 		${password}
 	EOF
-	test -s postgres/password.txt
+	test -s ${PCCX_SECRET}/postgres.txt
 fi
 
 for d in \
@@ -91,74 +123,84 @@ for d in \
 	platina-executor \
 	platina-monitor \
 	security \
-	security/admin \
+	security-admin \
 	user-management
 do
-	if test ! -f $d/password.txt; then
-		sprompt $d password
-		create 0600 $d/password.txt tr -d \\\\n <<-EOF
+	if test ! -f ${PCCX_SECRET}/${d}.txt; then
+		sprompt password $d password '(default == postgres)'
+		create 0600 ${PCCX_SECRET}/${d}.txt tr -d \\\\n <<-EOF
 			${password}
 		EOF
-		test -s $d/password.txt ||
-			cat postgres/password.txt >> $d/password.txt
+		test -s ${PCCX_SECRET}/${d}.txt ||
+			cat ${PCCX_SECRET}/postgres/password.txt >> \
+				${PCCX_SECRET}/${d}.txt
 	fi
 done
 
-test -s gateway/fixme.env ||
-	create 0600 gateway/fixme.env cat <<-EOF
-		KEYSTORE_PASSWORD="$(cat gateway/password.txt)"
+test -s ${PCCX_SECRET}/fixme/gateway.env ||
+	create 0600 ${PCCX_SECRET}/fixme/gateway.env cat <<-EOF
+	KEYSTORE_PASSWORD="$(cat ${PCCX_SECRET}/gateway.txt)"
 EOF
 
-test -s kafka/fixme.env ||
-	create 0600 kafka/fixme.env cat <<-EOF
-		PASSWORD="$(cat kafka/password.txt)"
+test -s ${PCCX_SECRET}/fixme/kafka.env ||
+	create 0600 ${PCCX_SECRET}/fixme/kafka.env cat <<-EOF
+	PASSWORD="$(cat ${PCCX_SECRET}/kafka.txt)"
 EOF
 
-test -s key-manager/fixme.env ||
-	create 0600 key-manager/fixme.env cat <<-EOF
-		SERVICE_DB_PASSWORD="$(cat key-manager/password.txt)"
+test -s ${PCCX_SECRET}/fixme/key-manager.env ||
+	create 0600 ${PCCX_SECRET}/fixme/key-manager.env cat <<-EOF
+	PCC_DB_PASSWORD="$(cat ${PCCX_SECRET}/pccserver.txt)"
+	SERVICE_DB_PASSWORD="$(cat ${PCCX_SECRET}/key-manager.txt)"
 EOF
 
-test -s maas/fixme.env ||
-	create 0600 maas/fixme.env cat <<-EOF
-		SERVICE_DB_PASSWORD="$(cat maas/password.txt)"
+test -s ${PCCX_SECRET}/fixme/maas.env ||
+	create 0600 ${PCCX_SECRET}/fixme/maas.env cat <<-EOF
+	POSTGRES_PASSWORD="$(cat ${PCCX_SECRET}/pccserver.txt)"
+	SERVICE_DB_PASSWORD="$(cat ${PCCX_SECRET}/maas.txt)"
 EOF
 
-test -s mailer/fixme.env ||
-	create 0600 mailer/fixme.env cat <<-EOF
-		SERVICE_PASSWORD="$(cat mailer/password.txt)"
+test -s ${PCCX_SECRET}/fixme/mailer.env ||
+	create 0600 ${PCCX_SECRET}/fixme/mailer.env cat <<-EOF
+	SERVICE_PASSWORD="$(cat ${PCCX_SECRET}/mailer.txt)"
 EOF
 
-test -s pccserver/fixme.env ||
-	create 0600 pccserver/fixme.env cat <<-EOF
-		SERVICE_DB_PASSWORD="$(cat pccserver/password.txt)"
-		POSTGRES_PASSWORD="$(cat pccserver/password.txt)"
+test -s ${PCCX_SECRET}/fixme/pccserver.env ||
+	create 0600 ${PCCX_SECRET}/fixme/pccserver.env cat <<-EOF
+	SERVICE_DB_PASSWORD="$(cat ${PCCX_SECRET}/pccserver.txt)"
+	POSTGRES_PASSWORD="$(cat ${PCCX_SECRET}/pccserver.txt)"
 EOF
 
-test -s phone-home/fixme.env ||
-	create 0600 phone-home/fixme.env cat <<-EOF
-		SERVICE_DB_PASSWORD="$(cat phone-home/password.txt)"
-		PHONEHOME_SECRET_KEY="$(cat phone-home/password.txt)"
+test -s ${PCCX_SECRET}/fixme/phone-home.env ||
+	create 0600 ${PCCX_SECRET}/fixme/phone-home.env cat <<-EOF
+	PHONEHOME_DB_PASSWORD="$(cat ${PCCX_SECRET}/phone-home.txt)"
+	PHONEHOME_SECRET_KEY="$(cat ${PCCX_SECRET}/phone-home.txt)"
+	SERVICE_DB_PASSWORD="$(cat ${PCCX_SECRET}/phone-home.txt)"
 EOF
 
-test -s platina-executor/fixme.env ||
-	create 0600 platina-executor/fixme.env cat <<-EOF
-		SERVICE_DB_PASSWORD="$(cat platina-executor/password.txt)"
+test -s ${PCCX_SECRET}/fixme/platina-executor.env ||
+	create 0600 ${PCCX_SECRET}/fixme/platina-executor.env cat <<-EOF
+	PHONEHOME_SECRET_KEY="$(cat ${PCCX_SECRET}/phone-home.txt)"
+	POSTGRES_PASSWORD="$(cat ${PCCX_SECRET}/pccserver.txt)"
+	SERVICE_DB_PASSWORD="$(cat ${PCCX_SECRET}/platina-executor.txt)"
 EOF
 
-test -s platina-monitor/fixme.env ||
-	create 0600 platina-monitor/fixme.env cat <<-EOF
-		SERVICE_DB_PASSWORD="$(cat platina-monitor/password.txt)"
-		PHONEHOME_SECRET_KEY="$(cat phone-home/password.txt)"
+test -s ${PCCX_SECRET}/fixme/platina-monitor.env ||
+	create 0600 ${PCCX_SECRET}/fixme/platina-monitor/fixme.env cat <<-EOF
+	PHONEHOME_SECRET_KEY="$(cat ${PCCX_SECRET}/phone-home.txt)"
+	PLATINAMONITOR_DB_PASSWORD="$(cat ${PCCX_SECRET}/platina-monitor.txt)"
+	POSTGRES_PASSWORD="$(cat ${PCCX_SECRET}/pccserver.txt)"
+	SERVICE_DB_PASSWORD="$(cat ${PCCX_SECRET}/platina-monitor.txt)"
 EOF
 
-test -s security/fixme.env ||
-	create 0600 security/fixme.env cat <<-EOF
-		ADMIN_PASSWORD="$(cat security/admin/password.txt)"
-		SERVICE_DB_PASSWORD="$(cat security/password.txt)"
+test -s ${PCCX_SECRET}/fixme/security.env ||
+	create 0600 ${PCCX_SECRET}/fixme/security.env cat <<-EOF
+	ADMIN_PASSWD="$(cat ${PCCX_SECRET}/security-admin.txt)"
+	PCC_DB_PASSWORD="$(cat ${PCCX_SECRET}/pccserver.txt)"
+	PLATINAMONITOR_DB_PASSWORD="$(cat ${PCCX_SECRET}/platina-monitor.txt)"
+	SERVICE_DB_PASSWORD="$(cat ${PCCX_SECRET}/security.txt)"
 EOF
 
-test -s user-management/fixme.env ||
-	create 0600 user-management/fixme.env cat <<-EOF
-		SERVICE_DB_PASSWORD="$(cat user-management/password.txt)"
+test -s ${PCCX_SECRET}/fixme/user-management.env ||
+	create 0600 ${PCCX_SECRET}/fixme/user-management.env cat <<-EOF
+	SERVICE_DB_PASSWORD="$(cat ${PCCX_SECRET}/user-management.txt)"
 EOF

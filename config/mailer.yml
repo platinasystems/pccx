@@ -9,13 +9,13 @@ management:
 
 application:
   local:
-    address: 127.0.0.1
+    address: 0.0.0.0
     port: 8787
     secureport: 0
 
 registry:
   skip: false
-  address: registry
+  address: "api-registry"
   port: 8761
 
 mailer:
