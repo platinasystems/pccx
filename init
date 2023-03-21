@@ -1,7 +1,7 @@
 #!/bin/sh -e
 
 test ! -r /etc/pccx || . /etc/pccx
-test ! -r .env || . .env
+test ! -r .env || . ./.env
 
 : ${PCCX_DATA:=${PWD}/data}
 : ${PCCX_SECRET:=${PWD}/secret}
