@@ -57,7 +57,7 @@ sprompt() {
 	echo
 }
 	
-if test ! -f tlsx/cert.pem; then
+if test ! -f ${PCCX_SECRET}/cert.pem; then
 	mkdir -p tlsx
 	prompt alg alorithm '{ed25519, ecdsa256, ecdsa384, ecdsa512, rsa256, rsa384, rsa512 (default ed25519)'
 	: ${alg:=ed25519}
