@@ -45,7 +45,7 @@ secrets:
     file: ${PCCX_SECRET:-./secret}/maas.txt
   mailer:
     file: ${PCCX_SECRET:-./secret}/mailer.txt
-  minio_secret:
+  minio:
     file: ${PCCX_SECRET:-./secret}/minio.env
   pccserver:
     file: ${PCCX_SECRET:-./secret}/pccserver.txt
@@ -110,7 +110,7 @@ x-custom:
   CONNECT_PORT: 0
   REST_PORT: 0
 - &minio-environment
-  MINIO_CONFIG_ENV_FILE: "/run/secrets/minio_secret"
+  MINIO_CONFIG_ENV_FILE: "/run/secrets/minio"
 - &postgres-environment
   POSTGRES_DB: ${POSTGRES_DB:-postgres}
   POSTGRES_DB_HOST: postgres
@@ -262,7 +262,7 @@ services:
         - storage
     expose: [ 9000 ]
     secrets:
-    - minio_secret
+    - minio
     - source: cert
       target: /mnt/certs/public.crt
       uid: ${UID:-0}
@@ -285,7 +285,7 @@ services:
       - "curl"
       - "-f"
       - "-k"
-      - "http://minio:9000/minio/health/live"
+      - "http://localhost:9000/minio/health/live"
     command: server --certs-dir=/mnt/certs /data
 
   cadvisor:
@@ -443,7 +443,7 @@ services:
       SERVICE_DB_PASSWORD_FILE: /run/secrets/pccserver
       SERVICE_DEBUG_ENABLED: ${PCC_DEBUG_ENABLED:-false}
     secrets:
-    - minio_secret
+    - minio
     - postgres
     - *secret-ssh-id
     volumes:
@@ -507,7 +507,7 @@ services:
       SERVICE_DB_PASSWORD_FILE: /run/secrets/user_management
       SERVICE_DEBUG_ENABLED: ${USERMANAGEMENT_DEBUG_ENABLED:-false}
     secrets:
-    - minio_secret
+    - minio
     - postgres
     volumes:
     - ${PCCX_LOG:-./log}/user-management:/home/logs
@@ -755,7 +755,7 @@ services:
       SERVICE_DB_USER: ${PHONEHOME_DB_USER:-phuser}
       SERVICE_DB_PASSWORD_FILE: /run/secrets/phone_home
       SERVICE_DEBUG_ENABLED: ${PHONEHOME_DEBUG_ENABLED:-false}
-    secrets: [ minio_secret ]
+    secrets: [ minio ]
     volumes:
     - ${PCCX_DATA:-./data}/phone-home:/data
     - ${PCCX_LOG:-./log}/phone-home:/home/logs
