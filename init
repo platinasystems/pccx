@@ -4,6 +4,7 @@ test ! -r /etc/pccx || . /etc/pccx
 test ! -r .env || . ./.env
 
 : ${PCCX_DATA:=${PWD}/data}
+: ${PCCX_LOG:=${PWD}/log}
 : ${PCCX_SECRET:=${PWD}/secret}
 : ${TLSX_IMAGE:=platina.io/tlsx}
 : ${UID:=$(id -u)}
@@ -14,10 +15,12 @@ if test $# -gt 0 -a "$1" = "help"; then
 	exit 0
 fi
 
+mkdir -p -m 0755 ${PCCX_DATA} ${PCCX_LOG}
+mkdir -p -m 0700 ${PCCX_SECRET} ${PCCX_SECRET}/fixme
+
 create() {
 	mode=$1; shift
 	file=$1; shift
-	mkdir -p ${file%/*}
 	touch ${file}
 	chmod ${mode} ${file}
 	if test $# -gt 0; then
@@ -58,7 +61,6 @@ sprompt() {
 }
 	
 if test ! -f ${PCCX_SECRET}/cert.pem; then
-	mkdir -p tlsx
 	prompt alg alorithm '{ed25519, ecdsa256, ecdsa384, ecdsa512, rsa256, rsa384, rsa512 (default ed25519)'
 	: ${alg:=ed25519}
 	prompt fullname full name
@@ -85,9 +87,6 @@ if test ! -f ${PCCX_SECRET}/cert.pem; then
 			-organization "${organization}" \
 			-province "${state}"
 fi
-
-mkdir -p -m 0700 ${PCCX_SECRET}
-mkdir -p -m 0700 ${PCCX_SECRET}/fixme
 
 test -f ${PCCX_SECRET}/id_rsa ||
 	ssh-keygen -q -t rsa -N '' -f ${PCCX_SECRET}/id_rsa
