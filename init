@@ -61,11 +61,10 @@ if test ! -f ${PCCX_SECRET}/cert.pem; then
 	mkdir -p tlsx
 	prompt alg alorithm '{ed25519, ecdsa256, ecdsa384, ecdsa512, rsa256, rsa384, rsa512 (default ed25519)'
 	: ${alg:=ed25519}
-	_fullname=$(id -F)
-	prompt fullname full name "(default ${fullname})"
-	: ${fullname:=${_fullname}}
+	prompt fullname full name
+	: ${fullname:=anonymous}
 	prompt email email
-	: ${email:=unspecified}
+	: ${email:=no.one@no.where}
 	_dns=$(hostname -f)
 	prompt dns host fully qualified domain name "${_dns}"
 	: ${dns:=${_dns}}
