@@ -130,7 +130,7 @@ do
 			${password}
 		EOF
 		test -s ${PCCX_SECRET}/${d}.txt ||
-			cat ${PCCX_SECRET}/postgres/password.txt >> \
+			cat ${PCCX_SECRET}/postgres.txt >> \
 				${PCCX_SECRET}/${d}.txt
 	fi
 done
@@ -183,7 +183,7 @@ test -s ${PCCX_SECRET}/fixme/platina-executor.env ||
 EOF
 
 test -s ${PCCX_SECRET}/fixme/platina-monitor.env ||
-	create 0600 ${PCCX_SECRET}/fixme/platina-monitor/fixme.env cat <<-EOF
+	create 0600 ${PCCX_SECRET}/fixme/platina-monitor.env cat <<-EOF
 	PHONEHOME_SECRET_KEY="$(cat ${PCCX_SECRET}/phone-home.txt)"
 	PLATINAMONITOR_DB_PASSWORD="$(cat ${PCCX_SECRET}/platina-monitor.txt)"
 	POSTGRES_PASSWORD="$(cat ${PCCX_SECRET}/pccserver.txt)"
