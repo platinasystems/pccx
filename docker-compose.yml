@@ -176,9 +176,9 @@ services:
 
   postgres:
     container_name: postgres
-    #platform: linux/amd64
-    #image: ${POSTGRES_IMAGE:-platinadownload.auctacognitio.com/postgres:10.6-alpine}
-    image: ${POSTGRES_IMAGE:-postgres}
+    platform: linux/amd64
+    image: ${POSTGRES_IMAGE:-platinadownload.auctacognitio.com/postgres:10.6-alpine}
+    #image: ${POSTGRES_IMAGE:-postgres}
     restart: *restart
     networks: [ backend ]
     expose: [ 5432 ]
