@@ -209,7 +209,7 @@ services:
       target: /config.yml
     volumes:
     - ${PCCX_DATA:-./data}/prometheus:/prometheus
-    - &prometheus-rules ${PCCX_DATA:-./data}/prometheus-rules:/etc/prometheus/rules/
+    - &prometheus-rules ${PCCX_DATA:-./data}/prometheus-rules:/home/prometheus/rules/
     command: >-
       --config.file=/config.yml
       --web.enable-lifecycle
