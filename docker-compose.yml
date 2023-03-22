@@ -193,7 +193,7 @@ services:
     - ${PCCX_DATA:-./data}/postgres-backup:/var/lib/postgresql/backup
     - ${PCCX_DATA:-./data}/postgres-wals:/var/lib/postgresql/wals
     - ${PCCX_LOG:-./log}/postgres:/var/lib/postgresql/logs
-    - ./entrypoint/postgres.sh:/docker-entrypoint.sh:ro
+    - ./entrypoint/postgres:/docker-entrypoint.sh:ro
     command: postgres -c config_file=/postgres.sql
 
   prometheus:
