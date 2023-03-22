@@ -148,6 +148,7 @@ EOF
 test -s ${PCCX_SECRET}/fixme/key-manager.env ||
 	create 0600 ${PCCX_SECRET}/fixme/key-manager.env cat <<-EOF
 	PCC_DB_PASSWORD="$(cat ${PCCX_SECRET}/pccserver.txt)"
+	POSTGRES_PASSWORD="$(cat ${PCCX_SECRET}/pccserver.txt)"
 	SERVICE_DB_PASSWORD="$(cat ${PCCX_SECRET}/key-manager.txt)"
 EOF
 
@@ -195,6 +196,7 @@ test -s ${PCCX_SECRET}/fixme/security.env ||
 	ADMIN_PASSWD="$(cat ${PCCX_SECRET}/security-admin.txt)"
 	PCC_DB_PASSWORD="$(cat ${PCCX_SECRET}/pccserver.txt)"
 	PLATINAMONITOR_DB_PASSWORD="$(cat ${PCCX_SECRET}/platina-monitor.txt)"
+	POSTGRES_PASSWORD="$(cat ${PCCX_SECRET}/pccserver.txt)"
 	SERVICE_DB_PASSWORD="$(cat ${PCCX_SECRET}/security.txt)"
 EOF
 
