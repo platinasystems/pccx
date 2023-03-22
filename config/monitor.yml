@@ -224,4 +224,4 @@ phone-home:
   log:
     path: /home/logs
   storage:
-    endpoint: http://minio:9000
+    endpoint: http://phone-home:9000
