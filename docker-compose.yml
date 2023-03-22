@@ -382,7 +382,7 @@ services:
     expose: [ 9999 ]
     configs:
     - source: gateway
-      target: /config.yml
+      target: /home/conf/application.yml
     secrets:
     - gateway
     - source: cert
@@ -400,7 +400,7 @@ services:
       KEYSTORE_PASSWORD_FILE: /run/secrets/gateway
       PLATINA_ITERATIONS: 180
       PLATINA_PERIOD_SECS: 5
-      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_CONFIG_URI: /home/conf/application.yml
       SERVICE_CONFIG_BRANCH: master
       SERVICE_DEBUG_ENABLED: ${GATEWAY_DEBUG_ENABLED:-false}
     volumes:
@@ -421,7 +421,7 @@ services:
     - SYS_ADMIN
     configs:
     - source: pccserver
-      target: /config.yml
+      target: /home/conf/application.yml
     devices: [ /dev/net/tun ]
     env_file:
     - ${PCCX_SECRET:-./secret}/fixme/kafka.env
@@ -437,7 +437,7 @@ services:
       KAFKA_PERIOD_SECS: 3
       PLATINA_ITERATIONS: 90
       PLATINA_PERIOD_SECS: 3
-      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_CONFIG_URI: /home/conf/application.yml
       SERVICE_CONFIG_BRANCH: master
       SERVICE_DB: ${PCC_DB:-pccdb}
       SERVICE_DB_HOST: postgres
@@ -470,14 +470,14 @@ services:
     cap_add: [ SYS_PTRACE ]
     configs:
     - source: mailer
-      target: /config.yml
+      target: /home/conf/application.yml
     env_file:
     - ${PCCX_SECRET:-./secret}/fixme/phone-home.env
     - ${PCCX_SECRET:-./secret}/fixme/mailer.env
     environment:
       << : *postgres-environment
       PHONEHOME_ACCESS_KEY: ${PHONEHOME_ACCESS_KEY:-admin}
-      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_CONFIG_URI: /home/conf/application.yml
       SERVICE_CONFIG_BRANCH: ${MAILER_CONFIG_BRANCH:-master}
       SERVICE_USER: ${MAILER_USER:-pcc_notifications@platinasystems.com}
       SERVICE_PASSWORD_FILE: /run/secrets/mailer
@@ -495,14 +495,15 @@ services:
     networks: [ backend ]
     configs:
     - source: user_management
-      target: /config.yml
+      target: /home/conf/application.yml
     env_file: ${PCCX_SECRET:-./secret}/fixme/user-management.env
     environment:
       << : *minio-environment
       << : *postgres-environment
       MINIO_ITERATIONS: 90
       MINIO_PERIOD_SECS: 3
-      SERVICE_CONFIG_URI: /config.yml
+      MINIO_PORT: 9000
+      SERVICE_CONFIG_URI: /home/conf/application.yml
       SERVICE_DB: ${USERMANAGEMENT_DB:-jwt}
       SERVICE_DB_HOST: postgres
       SERVICE_DB_USER: ${USERMANAGEMENT_DB_USER:-jwtuser}
@@ -523,7 +524,7 @@ services:
     networks: [ backend ]
     configs:
     - source: security
-      target: /config.yml
+      target: /home/conf/application.yml
     env_file: ${PCCX_SECRET:-./secret}/fixme/security.env
     environment:
       << : *postgres-environment
@@ -534,7 +535,7 @@ services:
       PCC_DB_PASSWORD_FILE: /run/secrets/pccserver
       PLATINAMONITOR_DB_USER: ${PLATINAMONITOR_DB_USER:-monitor}
       PLATINAMONITOR_DB_PASSWORD_FILE: /run/secrets/platina_monitor
-      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_CONFIG_URI: /home/conf/application.yml
       SERVICE_DB: ${SECURITY_DB:-jwt}
       SERVICE_DB_HOST: postgres
       SERVICE_DB_USER: ${SECURITY_DB_USER:-jwtuser}
@@ -558,7 +559,7 @@ services:
     networks: [ backend ]
     configs:
     - source: key_manager
-      target: /config.yml
+      target: /home/conf/application.yml
     env_file: ${PCCX_SECRET:-./secret}/fixme/key-manager.env
     environment:
       << : *postgres-environment
@@ -566,7 +567,7 @@ services:
       PCC_DB_HOST: postgres
       PCC_DB_USER: ${PCC_DB_USER:-pcc}
       PCC_DB_PASSWORD_FILE: /run/secrets/pccserver
-      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_CONFIG_URI: /home/conf/application.yml
       SERVICE_DB: ${KEYMANAGER_DB:-key_manager}
       SERVICE_DB_HOST: postgres
       SERVICE_DB_USER: ${KEYMANAGER_DB_USER:-jwtuser}
@@ -592,7 +593,7 @@ services:
     networks: [ backend ]
     configs:
     - source: monitor
-      target: /config.yml
+      target: /home/conf/application.yml
     environment:
       KAFKA_ITERATIONS: 180
       KAFKA_PERIOD_SECS: 3
@@ -618,7 +619,7 @@ services:
     privileged: true
     configs:
     - source: platina_executor
-      target: /config.yml
+      target: /home/conf/application.yml
     env_file: ${PCCX_SECRET:-./secret}/fixme/platina-executor.env
     environment:
       << : *postgres-environment
@@ -628,7 +629,7 @@ services:
       PLATINAEXECUTOR_DB_HOST: postgres
       PLATINA_ITERATIONS: 90
       PLATINA_PERIOD_SECS: 3
-      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_CONFIG_URI: /home/conf/application.yml
       SERVICE_CONFIG_BRANCH: ${PLATINAEXECUTOR_CONFIG_BRANCH:-master}
       SERVICE_DB: ${PLATINAEXECUTOR_DB:-executordb}
       SERVICE_DB_HOST: postgres
@@ -666,7 +667,7 @@ services:
     expose: [ 8995 ]
     configs:
     - source: platina_monitor
-      target: /config.yml
+      target: /home/conf/application.yml
     env_file: ${PCCX_SECRET:-./secret}/fixme/platina-monitor.env
     environment:
       << : *postgres-environment
@@ -682,7 +683,7 @@ services:
       PROMETHEUS_PERIOD_SECS: 3
       PROMETHEUSGW_ITERATIONS: 180
       PROMETHEUSGW_PERIOD_SECS: 3
-      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_CONFIG_URI: /home/conf/application.yml
       SERVICE_CONFIG_BRANCH: ${PLATINAMONITOR_CONFIG_BRANCH:-master}
       SERVICE_DB: ${PLATINAMONITOR_DB:-platina_monitor}
       SERVICE_DB_HOST: postgres
@@ -705,7 +706,7 @@ services:
     cap_add: [ SYS_PTRACE ]
     configs:
     - source: maas
-      target: /config.yml
+      target: /home/conf/application.yml
     env_file:
     - ${PCCX_SECRET:-./secret}/fixme/phone-home.env
     - ${PCCX_SECRET:-./secret}/fixme/maas.env
@@ -717,7 +718,7 @@ services:
       ORCHESTRATION_REPO_USER_TOKEN: 'empty'
       PHONEHOME_ACCESS_KEY: ${PHONEHOME_ACCESS_KEY:-admin}
       SERVICE_ADDITIONAL_ARGUMENTS: ${MAAS_ADDITIONAL_ARGUMENTS:-}
-      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_CONFIG_URI: /home/conf/application.yml
       SERVICE_CONFIG_BRANCH: ${MAAS_CONFIG_BRANCH:-master}
       SERVICE_DB: ${MAAS_DB:-maas}
       SERVICE_DB_HOST: postgres
@@ -743,7 +744,7 @@ services:
     cap_add: [ SYS_PTRACE ]
     configs:
     - source: phone_home
-      target: /config.yml
+      target: /home/conf/application.yml
     env_file: ${PCCX_SECRET:-./secret}/fixme/phone-home.env
     environment:
       << : *minio-environment
@@ -751,7 +752,7 @@ services:
       CUSTOMER: PlatinaSystems
       PHONEHOME_DB_HOST: postgres
       SERVICES: "platina-monitor,key-manager,monitor,registry,maas,node-exporter,mailer,user-management,platina-executor,cadvisor,gateway,pccserver,security"
-      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_CONFIG_URI: /home/conf/application.yml
       SERVICE_DB: ${PHONEHOME_DB:-phone_home}
       SERVICE_DB_HOST: postgres
       SERVICE_DB_USER: ${PHONEHOME_DB_USER:-phuser}
@@ -772,7 +773,7 @@ services:
     expose: [ 443 ]
     configs:
     - source: pcc_ui
-      target: /config.yml
+      target: /home/conf/application.yml
     secrets:
     - source: cert
       target: /usr/local/apache2/conf/server.crt
@@ -788,7 +789,7 @@ services:
       HOST_IP: ${HOST_IP:-0.0.0.0}
       PLATINA_ITERATIONS: 200
       PLATINA_PERIOD_SECS: 5
-      SERVICE_CONFIG_URI: /config.yml
+      SERVICE_CONFIG_URI: /home/conf/application.yml
       SERVICE_CONFIG_BRANCH: master
       SERVICE_DEBUG_ENABLED: ${PCCUI_DEBUG_ENABLED:-false}
     volumes:
