@@ -583,6 +583,16 @@ services:
     - pccserver
     - postgres
     - *secret-ssh-id
+    - source: cert
+      target: /home/keys/system.pub
+      uid: ${UID:-0}
+      gid: ${GID:-0}
+      mode: 0400
+    - source: key
+      target: /home/keys/system.pem
+      uid: ${UID:-0}
+      gid: ${GID:-0}
+      mode: 0400
     volumes:
     - ${PCCX_LOG:-./log}/key-manager:/home/logs
     - *pub-ssh-id
