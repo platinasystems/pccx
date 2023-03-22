@@ -109,8 +109,6 @@ x-custom:
   W_ITERATIONS: 180
   CONNECT_PORT: 0
   REST_PORT: 0
-- &minio-environment
-  MINIO_CONFIG_ENV_FILE: "/run/secrets/minio"
 - &postgres-environment
   POSTGRES_DB: ${POSTGRES_DB:-postgres}
   POSTGRES_DB_HOST: postgres
@@ -276,7 +274,7 @@ services:
       gid: ${GID:-0}
       mode: 0400
     environment:
-      << : *minio-environment
+      MINIO_CONFIG_ENV_FILE: "/run/secrets/minio"
     volumes:
     - ${PCCX_DATA:-./data}/minio:/data
     healthcheck:
@@ -287,7 +285,7 @@ services:
       - "curl"
       - "-f"
       - "-k"
-      - "http://localhost:9000/minio/health/live"
+      - "https://localhost:9000/minio/health/live"
     command: server --certs-dir=/mnt/certs /data
 
   cadvisor:
@@ -425,16 +423,23 @@ services:
     devices: [ /dev/net/tun ]
     env_file:
     - ${PCCX_SECRET:-./secret}/fixme/kafka.env
+    - ${PCCX_SECRET:-./secret}/fixme/phone-home.env
     - ${PCCX_SECRET:-./secret}/fixme/pccserver.env
     environment:
       << : *kafka-environment
-      << : *minio-environment
       << : *postgres-environment
       ANSIBLE_VERBOSITY: ${ANSIBLE_VERBOSE_LEVEL:-0}
-      MINIO_ITERATIONS: 90
-      MINIO_PERIOD_SECS: 3
+      HOST_IP: ${HOST_IP:-0.0.0.0}
       KAFKA_ITERATIONS: 180
       KAFKA_PERIOD_SECS: 3
+      MINIO_ITERATIONS: 90
+      MINIO_PERIOD_SECS: 3
+      MINIO_PORT: 9000
+      PCC_DB: ${PCC_DB:-pccdb}
+      PCC_DB_HOST: postgres
+      PCC_DB_USER: ${PCC_DB_USER:-pcc}
+      PCC_DB_PASSWORD_FILE: /run/secrets/pccserver
+      PHONEHOME_ACCESS_KEY: ${PHONEHOME_ACCESS_KEY:-admin}
       PLATINA_ITERATIONS: 90
       PLATINA_PERIOD_SECS: 3
       SERVICE_CONFIG_URI: /home/conf/application.yml
@@ -445,7 +450,6 @@ services:
       SERVICE_DB_PASSWORD_FILE: /run/secrets/pccserver
       SERVICE_DEBUG_ENABLED: ${PCC_DEBUG_ENABLED:-false}
     secrets:
-    - minio
     - postgres
     - *secret-ssh-id
     volumes:
@@ -499,7 +503,6 @@ services:
       target: /home/conf/application.yml
     env_file: ${PCCX_SECRET:-./secret}/fixme/user-management.env
     environment:
-      << : *minio-environment
       << : *postgres-environment
       MINIO_ITERATIONS: 90
       MINIO_PERIOD_SECS: 3
@@ -511,7 +514,6 @@ services:
       SERVICE_DB_PASSWORD_FILE: /run/secrets/user_management
       SERVICE_DEBUG_ENABLED: ${USERMANAGEMENT_DEBUG_ENABLED:-false}
     secrets:
-    - minio
     - postgres
     volumes:
     - ${PCCX_LOG:-./log}/user-management:/home/logs
@@ -763,9 +765,9 @@ services:
       target: /home/conf/application.yml
     env_file: ${PCCX_SECRET:-./secret}/fixme/phone-home.env
     environment:
-      << : *minio-environment
       << : *postgres-environment
       CUSTOMER: PlatinaSystems
+      MINIO_PORT: 9000
       PHONEHOME_DB_HOST: postgres
       SERVICES: "platina-monitor,key-manager,monitor,registry,maas,node-exporter,mailer,user-management,platina-executor,cadvisor,gateway,pccserver,security"
       SERVICE_CONFIG_URI: /home/conf/application.yml
