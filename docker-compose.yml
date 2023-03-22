@@ -493,6 +493,7 @@ services:
     image: ${USER_MANAGEMENT_IMAGE:-platinadownload.auctacognitio.com/user-management:release-branch.pcc2.1}
     restart: *restart
     networks: [ backend ]
+    expose: [ 8083 ]
     configs:
     - source: user_management
       target: /home/conf/application.yml
@@ -522,6 +523,7 @@ services:
     image: ${SECURITY_IMAGE:-platinadownload.auctacognitio.com/security:release-branch.pcc2.1}
     restart: *restart
     networks: [ backend ]
+    expose: [ 8082 ]
     configs:
     - source: security
       target: /home/conf/application.yml
@@ -557,6 +559,7 @@ services:
     image: ${KEY_MANAGER_IMAGE:-platinadownload.auctacognitio.com/key-manager:release-branch.pcc2.1}
     restart: *restart
     networks: [ backend ]
+    expose: [ 8084 ]
     configs:
     - source: key_manager
       target: /home/conf/application.yml
@@ -591,6 +594,7 @@ services:
     image: ${MAILER_IMAGE:-platinadownload.auctacognitio.com/monitor:release-branch.pcc2.1}
     restart: *restart
     networks: [ backend ]
+    expose: [ 9091 ]
     configs:
     - source: monitor
       target: /home/conf/application.yml
@@ -702,6 +706,7 @@ services:
     image: ${MAILER_IMAGE:-platinadownload.auctacognitio.com/maas:release-branch.pcc2.1}
     restart: *restart
     networks: [ backend ]
+    expose: [ 5980 ]
     privileged: true
     cap_add: [ SYS_PTRACE ]
     configs:
@@ -741,6 +746,7 @@ services:
     image: ${PHONE_HOME_IMAGE:-platinadownload.auctacognitio.com/phone-home:release-branch.pcc2.1}
     restart: *restart
     networks: [ backend ]
+    expose: [ 8383, 9000 ]
     cap_add: [ SYS_PTRACE ]
     configs:
     - source: phone_home
