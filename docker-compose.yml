@@ -202,6 +202,8 @@ services:
     restart: *restart
     networks: [ backend ]
     expose: [ 9090 ]
+    privileged: true
+    user: "0:0"
     configs:
     - source: prometheus
       target: /config.yml
