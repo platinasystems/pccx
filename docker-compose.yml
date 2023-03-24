@@ -178,7 +178,10 @@ services:
     image: ${POSTGRES_IMAGE:-platinadownload.auctacognitio.com/postgres:10.6-alpine}
     #image: ${POSTGRES_IMAGE:-postgres}
     restart: *restart
-    networks: [ backend ]
+    networks:
+      backend:
+        aliases:
+        - postgres-db
     expose: [ 5432 ]
     configs:
     - source: postgres
