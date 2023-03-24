@@ -185,7 +185,7 @@ services:
     expose: [ 5432 ]
     configs:
     - source: postgres
-      target: /postgres.sql
+      target: /config.sql
     environment:
       << : *postgres-environment
     secrets: [ postgres ]
@@ -195,7 +195,7 @@ services:
     - ${PCCX_DATA:-./data}/postgres-wals:/var/lib/postgresql/wals
     - ${PCCX_LOG:-./log}/postgres:/var/lib/postgresql/logs
     - ./entrypoint/postgres:/docker-entrypoint.sh:ro
-    command: postgres -c config_file=/postgres.sql
+    command: postgres -c config_file=/config.sql
 
   prometheus:
     container_name: prometheus
