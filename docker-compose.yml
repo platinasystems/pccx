@@ -267,16 +267,16 @@ services:
     expose: [ 9000 ]
     secrets:
     - minio
-    - source: cert
-      target: /mnt/certs/public.crt
-      uid: ${UID:-0}
-      gid: ${GID:-0}
-      mode: 0400
-    - source: key
-      target: /mnt/certs/private.key
-      uid: ${UID:-0}
-      gid: ${GID:-0}
-      mode: 0400
+#   - source: cert
+#     target: /mnt/certs/public.crt
+#     uid: ${UID:-0}
+#     gid: ${GID:-0}
+#     mode: 0400
+#   - source: key
+#     target: /mnt/certs/private.key
+#     uid: ${UID:-0}
+#     gid: ${GID:-0}
+#     mode: 0400
     environment:
       MINIO_CONFIG_ENV_FILE: "/run/secrets/minio"
     volumes:
@@ -289,7 +289,9 @@ services:
       - "curl"
       - "-f"
       - "-k"
-      - "https://localhost:9000/minio/health/live"
+#     - "--cacert"
+#     - "/mnt/certs/public.crt"
+      - "http://localhost:9000/minio/health/live"
     command: server --certs-dir=/mnt/certs /data
 
   cadvisor:
