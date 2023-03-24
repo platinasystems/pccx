@@ -92,10 +92,9 @@ test -f ${PCCX_SECRET}/id_rsa ||
 	ssh-keygen -q -t rsa -N '' -f ${PCCX_SECRET}/id_rsa
 
 if test ! -s ${PCCX_SECRET}/minio.env; then
-	prompt username minio root user name
 	sprompt password minio root password
 	create 0600 ${PCCX_SECRET}/minio.env cat <<-EOF
-		MINIO_ROOT_USER="${username}"
+		MINIO_ROOT_USER=minio
 		MINIO_ROOT_PASSWORD="${password}"
 		MINIO_VOLUMES=/data
 	EOF
