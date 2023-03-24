@@ -343,10 +343,10 @@ services:
     - source: alertmanager
       target: /config.yml
     volumes:
-    - ${PCCX_DATA:-./data}/alertmanager:/alertmanager
+    - ${PCCX_DATA:-./data}/alertmanager:/data
     command:
     - '--config.file=/config.yml'
-    - '--storage.path=/alertmanager'
+    - '--storage.path=/data'
 
   pushgateway:
     container_name: pushgateway
