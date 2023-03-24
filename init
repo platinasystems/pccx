@@ -86,6 +86,8 @@ if test ! -f ${PCCX_SECRET}/cert.pem; then
 			-name "${fullname}" \
 			-organization "${organization}" \
 			-province "${state}"
+	# FIXME edit block header until tlsx is upgraded.
+	sed -i -e 's,ED25519 ,,' secret/key.pem
 fi
 
 test -f ${PCCX_SECRET}/id_rsa ||
