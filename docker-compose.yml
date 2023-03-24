@@ -232,9 +232,10 @@ services:
     restart: *restart
     networks: [ backend ]
     expose:
+    - &kafka-landoop-ui-port 3030
+    ports:
     - &kafka-broker-port 9092
     - &kafka-schema-registry-port 8081
-    - &kafka-landoop-ui-port 3030
     privileged: true
     user: "0:0"
     env_file: ${PCCX_SECRET:-./secret}/fixme/kafka.env
