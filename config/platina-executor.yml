@@ -62,7 +62,7 @@ db:
 
 ansible:
   delegatorUser: pcc
-  sshPrivateKeyFile: /root/.ssh/id_rsa
+  sshPrivateKeyFile: /root/.ssh/id_rsa_ansible
   sshUser: pcc
   dir: /home/ansible/infra
   inventory: /home/ansible/infra/inventory/sites/hosts.yml
@@ -75,9 +75,9 @@ ansible:
 
 resources:
 - name: id_rsa_ansible
-  path: /root/.ssh/id_rsa
+  path: /root/.ssh/id_rsa_ansible
 - name: id_rsa_ansible_pub
-  path: /root/.ssh/id_rsa.pub
+  path: /root/.ssh/id_rsa_ansible.pub
 
 tasks:
   poolSize: 6
