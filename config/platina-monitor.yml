@@ -17,7 +17,7 @@ db:
 
 registry:
   skip: false
-  address: "api-registry"
+  address: api-registry
   port: 8761
 
 monitor:
@@ -28,14 +28,16 @@ monitor:
   mailer:
     templateId: 2
     templateBody: alert
-    host: "mailer"
+    host: mailer
     port: 8787
     protocol: http
+    address: mailer
   pcc:
     host: pccserver
     port: 8989
     protocol: http
     endpoint: notifications
+    address: pccserver
   alerts:
     minRepeatInterval: 10m
     topic: monitor-alerts

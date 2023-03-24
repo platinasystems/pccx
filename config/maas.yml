@@ -12,12 +12,13 @@ application:
   runmode: dev
 
 registry:
-  address: "api-registry"
+  address: api-registry
   port: 8761
 
 gateway:
   host: gateway
   port: 9999
+  address: gateway
 
 kafka:
   schemaRegistries:

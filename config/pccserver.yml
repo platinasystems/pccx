@@ -12,12 +12,13 @@ application:
 
 registry:
   skip: false
-  address: "api-registry"
+  address: api-registry
   port: 8761
 
 gateway:
   host: gateway
   port: 9999
+  address: gateway
 
 kafka:
   schemaRegistries:
@@ -60,6 +61,7 @@ monitor:
       productionPeriod: 30
       enabled: true
       noPushLimit: 10
+  expiryTime: 180s
 
 notification:
   pool:

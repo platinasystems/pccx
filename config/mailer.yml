@@ -15,7 +15,7 @@ application:
 
 registry:
   skip: false
-  address: "api-registry"
+  address: api-registry
   port: 8761
 
 mailer:
