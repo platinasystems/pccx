@@ -573,7 +573,8 @@ services:
     image: ${MAILER_IMAGE:-platinadownload.auctacognitio.com/monitor:release-branch.pcc2.1}
     restart: *restart
     networks: [ backend ]
-    expose: [ 9091 ]
+    expose: [ 9191 ]
+    hostname: monitor
     environment:
       KAFKA_ITERATIONS: 180
       KAFKA_PERIOD_SECS: 3
