@@ -68,8 +68,10 @@ if test ! -f ${PCCX_SECRET}/cert.pem; then
 	prompt email email
 	: ${email:=no.one@no.where}
 	_dns=$(hostname -f)
-	prompt dns host fully qualified domain name "${_dns}"
+	prompt dns host fully qualified domain name "(default ${_dns})"
 	: ${dns:=${_dns}}
+	prompt organization organization
+	: ${organization:=unspecified}
 	prompt city city
 	: ${city:=unspecified}
 	prompt state state or province
