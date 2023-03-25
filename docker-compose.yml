@@ -556,13 +556,7 @@ services:
     - key_manager
     - pccserver
     - postgres
-    - *secret-ssh-id
-    - source: cert
-      target: /home/keys/system.pub
-      uid: ${UID:-0}
-      gid: ${GID:-0}
-      mode: 0400
-    - source: key
+    - source: ssh_id
       target: /home/keys/system.pem
       uid: ${UID:-0}
       gid: ${GID:-0}
@@ -570,7 +564,7 @@ services:
     volumes:
     - ./config/key-manager.yml:/home/conf/application.yml
     - ${PCCX_LOG:-./log}/key-manager:/home/logs
-    - *pub-ssh-id
+    - ${PCCX_SECRET:-./secret}/id_rsa.pub:/home/keys/system.pub:ro
 
   monitor:
     container_name: monitor
