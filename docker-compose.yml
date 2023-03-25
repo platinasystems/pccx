@@ -143,7 +143,10 @@ services:
   redis:
     container_name: redis
     image: ${REDIS_IMAGE:-redis:5.0.3-alpine}
-    networks: [ backend ]
+    networks:
+      backend:
+        aliases:
+        - monitor-redis
     expose: [ 6379 ]
     volumes:
     - ${PCCX_DATA:-./data}/redis:/data
