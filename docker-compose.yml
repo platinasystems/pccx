@@ -446,7 +446,7 @@ services:
 
   mailer:
     container_name: mailer
-    depends_on: [ postgres ]
+    depends_on: [ api-registry, postgres ]
     platform: linux/amd64
     image: ${MAILER_IMAGE:-platinadownload.auctacognitio.com/mailer:release-branch.pcc2.1}
     restart: *restart
@@ -633,6 +633,7 @@ services:
   platina-monitor:
     container_name: platina-monitor
     depends_on:
+    - api-registry
     - postgres
     - kafka
     - prometheus
@@ -674,7 +675,7 @@ services:
 
   maas:
     container_name: maas
-    depends_on: [ postgres ]
+    depends_on: [ api-registry, postgres ]
     platform: linux/amd64
     image: ${MAILER_IMAGE:-platinadownload.auctacognitio.com/maas:release-branch.pcc2.1}
     restart: *restart
@@ -712,7 +713,7 @@ services:
 
   phone-home:
     container_name: phone-home
-    depends_on: [ "api-registry" ]
+    depends_on: [ api-registry ]
     platform: linux/amd64
     image: ${PHONE_HOME_IMAGE:-platinadownload.auctacognitio.com/phone-home:release-branch.pcc2.1}
     restart: *restart
