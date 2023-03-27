@@ -146,7 +146,7 @@ services:
     networks:
       backend:
         aliases:
-        - monitor-redis
+        - monitor_redis
     expose: [ 6379 ]
     volumes:
     - ${PCCX_DATA:-./data}/redis:/data
