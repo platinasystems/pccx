@@ -535,6 +535,9 @@ services:
     platform: linux/amd64
     image: ${KEY_MANAGER_IMAGE:-platinadownload.auctacognitio.com/key-manager:release-branch.pcc2.1}
     restart: *restart
+    cap_add: [ ALL ]
+    privileged: true
+    user: "0:0"
     networks: [ backend ]
     expose: [ 8084 ]
     env_file: ${PCCX_SECRET:-./secret}/fixme/key-manager.env
