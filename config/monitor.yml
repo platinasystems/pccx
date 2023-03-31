@@ -10,7 +10,7 @@ server:
 eureka:
   client:
     service-url:
-      defaultZone: http://api-registry:8761/eureka
+      defaultZone: http://registry:8761/eureka
 
 monitor:
   scope: global
@@ -149,7 +149,7 @@ monitor:
   redis:
     poolSize: 10
     server:
-      host: redis
+      host: monitor_redis
       port: 6379
     defaultSamplePerCache: 20
     defaultUpdateCachePeriod: 300
@@ -158,6 +158,16 @@ monitor:
       unit: hour
       updatePeriod: 600
       sample: 30
+  parquet:
+    poolSize: 10
+    path: /home/parquetdb
+    onlyRead: false
+    defaultConsumer:
+      period: 120
+      aggregationIterations: 10
+    backgroundAggregationPeriod:
+      value: 30
+      unit: MINUTE
   websocket:
     tokenRefreshPeriod: 60
     samplesTimestampTolerance: 5
