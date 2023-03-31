@@ -7,6 +7,14 @@ configs:
     file: ./config/postgres.sql
   prometheus:
     file: ./config/prometheus.yml
+  key_manager_supervisor:
+    file: config/supervisor/key-manager.conf
+  monitor_supervisor:
+    file: config/supervisor/monitor.conf
+  phone_home_supervisor:
+    file: config/supervisor/phone-home.conf
+  user_management_supervisor:
+    file: config/supervisor/user-management.conf
 
 secrets:
   cert:
@@ -27,6 +35,8 @@ secrets:
     file: ${PCCX_SECRET:-./secret}/pccserver.txt
   phone_home:
     file: ${PCCX_SECRET:-./secret}/phone-home.txt
+  phone_home_storage:
+    file: ${PCCX_SECRET:-./secret}/phone-home-storage.yml
   platina_executor:
     file: ${PCCX_SECRET:-./secret}/platina-executor.txt
   platina_monitor:
@@ -49,6 +59,7 @@ x-custom:
 - &tlsx-image ${TLSX_IMAGE:-platinadownload.auctacognitio.com/tlsx}
 - &tlsx-verbose -verbose=${TLSX_VERBOSE:-false}
 - &kafka-environment
+  PASSWORD: ${KAFKA_PASSWORD}
   # The basic auth password to access on UI Landoop ( username is kafka )
   # FIXME <https://caddyserver.com/docs/caddyfile/directives/basicauth>
   # The amount of data to retain in the log for each topic partition. By
@@ -85,11 +96,29 @@ x-custom:
   W_ITERATIONS: 180
   CONNECT_PORT: 0
   REST_PORT: 0
+- &pccserver-environment
+  PCC_DB: ${PCC_DB:-pccdb}
+  PCC_DB_HOST: postgres
+  PCC_DB_USER: ${PCC_DB_USER:-pcc}
+  PCC_DB_PASSWORD: ${PCC_DB_PASSWORD}
+  # FIXME PCC_DB_PASSWORD_FILE: /run/secrets/pccserver
+- &phone-home-environment
+  PHONEHOME_DB_HOST: postgres
+  PHONEHOME_ACCESS_KEY: ${PHONEHOME_ACCESS_KEY:-admin}
+  PHONEHOME_SECRET_KEY: ${PHONEHOME_SECRET_KEY}
+  # FIXME PHONEHOME_SECRET_KEY_FILE: /run/secrets/phone_home
+- &platina-monitor-environment
+  PLATINAMONITOR_DB: ${PLATINAMONITOR_DB:-platina_monitor}
+  PLATINAMONITOR_DB_HOST: postgres
+  PLATINAMONITOR_DB_USER: ${PLATINAMONITOR_DB_USER:-monitor}
+  PLATINAMONITOR_DB_PASSWORD: ${PLATINAMONITOR_DB_PASSWORD}
+  # FIXME PLATINAMONITOR_DB_PASSWORD_FILE: /run/secrets/platina_monitor
 - &postgres-environment
   POSTGRES_DB: ${POSTGRES_DB:-postgres}
   POSTGRES_DB_HOST: postgres
   POSTGRES_USER: ${POSTGRES_USER:-postgres}
-  POSTGRES_PASSWORD_FILE: /run/secrets/postgres
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  # FIXME POSTGRES_PASSWORD_FILE: /run/secrets/postgres
 - &pub-ssh-id ${PCCX_SECRET:-./secret}/id_rsa.pub:/root/.ssh/id_rsa_ansible.pub:ro
 - &secret-ssh-id
   source: ssh_id
@@ -217,7 +246,6 @@ services:
     - 9092:9092
     privileged: true
     user: "0:0"
-    env_file: ${PCCX_SECRET:-./secret}/fixme/kafka.env
     environment:
       << : *kafka-environment
     volumes:
@@ -243,7 +271,7 @@ services:
       backend:
         aliases:
         - storage
-    expose: [ 9000 ]
+    expose: [ 9000, 9001 ]
     secrets:
     - minio
 #   - source: cert
@@ -271,7 +299,7 @@ services:
 #     - "--cacert"
 #     - "/mnt/certs/public.crt"
       - "http://localhost:9000/minio/health/live"
-    command: server --certs-dir=/mnt/certs /data
+    command: server --certs-dir=/mnt/certs --console-address ":9001" /data
 
   cadvisor:
     container_name: cadvisor
@@ -375,9 +403,8 @@ services:
       uid: ${UID:-0}
       gid: ${GID:-0}
       mode: 0400
-    env_file: ${PCCX_SECRET:-./secret}/fixme/gateway.env
     environment:
-      KEYSTORE_PASSWORD_FILE: /run/secrets/gateway
+      KEYSTORE_PASSWORD: ${GATEWAY_KEYSTORE_PASSWORD}
       PLATINA_ITERATIONS: 180
       PLATINA_PERIOD_SECS: 5
       SERVICE_CONFIG_URI: /home/conf/application.yml
@@ -401,39 +428,29 @@ services:
     - NET_ADMIN
     - SYS_ADMIN
     devices: [ /dev/net/tun ]
-    env_file:
-    - ${PCCX_SECRET:-./secret}/fixme/kafka.env
-    - ${PCCX_SECRET:-./secret}/fixme/phone-home.env
-    - ${PCCX_SECRET:-./secret}/fixme/pccserver.env
+    env_file: ${PWD}/secret/minio.env
     environment:
-      << : *kafka-environment
-      << : *postgres-environment
       ANSIBLE_VERBOSITY: ${ANSIBLE_VERBOSE_LEVEL:-0}
       HOST_IP: ${HOST_IP:-0.0.0.0}
+      << : *kafka-environment
       KAFKA_ITERATIONS: 180
       KAFKA_PERIOD_SECS: 3
-      MINIO_ITERATIONS: 90
-      MINIO_PERIOD_SECS: 3
-      MINIO_PORT: 9000
-      PCC_DB: ${PCC_DB:-pccdb}
-      PCC_DB_HOST: postgres
-      PCC_DB_USER: ${PCC_DB_USER:-pcc}
-      PCC_DB_PASSWORD_FILE: /run/secrets/pccserver
-      PHONEHOME_ACCESS_KEY: ${PHONEHOME_ACCESS_KEY:-admin}
+      << : *pccserver-environment
+      << : *phone-home-environment
       PLATINA_ITERATIONS: 90
       PLATINA_PERIOD_SECS: 3
+      << : *postgres-environment
       SERVICE_CONFIG_URI: /home/conf/application.yml
       SERVICE_CONFIG_BRANCH: master
       SERVICE_DB: ${PCC_DB:-pccdb}
       SERVICE_DB_HOST: postgres
       SERVICE_DB_USER: ${PCC_DB_USER:-pcc}
+      SERVICE_DB_PASSWORD: ${PCC_DB_PASSWORD}
       SERVICE_DB_PASSWORD_FILE: /run/secrets/pccserver
       SERVICE_DEBUG_ENABLED: ${PCC_DEBUG_ENABLED:-false}
     secrets:
-    - postgres
     - *secret-ssh-id
     volumes:
-    - *pub-ssh-id
     - ./config/pccserver.yml:/home/conf/application.yml
     - ${PCCX_DATA:-./data}/pccserver:/srv/pcc
     - ${PCCX_LOG:-./log}/pccserver:/home/logs
@@ -443,6 +460,7 @@ services:
     - kubespray-playbooks:/home/turnkey-kubespray
     - pccserver-playbooks:/home/ansible
     - pccserver-supervisor-config:/etc/supervisor/conf.d
+    - *pub-ssh-id
 
   mailer:
     container_name: mailer
@@ -453,15 +471,13 @@ services:
     networks: [ backend ]
     expose: [ 8787 ]
     cap_add: [ SYS_PTRACE ]
-    env_file:
-    - ${PCCX_SECRET:-./secret}/fixme/phone-home.env
-    - ${PCCX_SECRET:-./secret}/fixme/mailer.env
     environment:
+      << : *phone-home-environment
       << : *postgres-environment
-      PHONEHOME_ACCESS_KEY: ${PHONEHOME_ACCESS_KEY:-admin}
       SERVICE_CONFIG_URI: /home/conf/application.yml
       SERVICE_CONFIG_BRANCH: ${MAILER_CONFIG_BRANCH:-master}
       SERVICE_USER: ${MAILER_USER:-pcc_notifications@platinasystems.com}
+      SERVICE_PASSWORD: ${MAILER_PASSWORD}
       SERVICE_PASSWORD_FILE: /run/secrets/mailer
       SERVICE_DEBUG_ENABLED: ${MAILER_DEBUG_ENABLED:-false}
     secrets: [ postgres ]
@@ -477,20 +493,31 @@ services:
     restart: *restart
     networks: [ backend ]
     expose: [ 8083 ]
-    env_file: ${PCCX_SECRET:-./secret}/fixme/user-management.env
+    configs:
+    - source: user_management_supervisor
+      target: /etc/supervisor/conf.d/supervisord.conf
+    env_file: ${PWD}/secret/minio.env
     environment:
       << : *postgres-environment
-      MINIO_ITERATIONS: 90
-      MINIO_PERIOD_SECS: 3
-      MINIO_PORT: 9000
       SERVICE_CONFIG_URI: /home/conf/application.yml
       SERVICE_DB: ${USERMANAGEMENT_DB:-jwt}
       SERVICE_DB_HOST: postgres
       SERVICE_DB_USER: ${USERMANAGEMENT_DB_USER:-jwtuser}
+      SERVICE_DB_PASSWORD: ${USERMANAGEMENT_DB_PASSWORD}
       SERVICE_DB_PASSWORD_FILE: /run/secrets/user_management
       SERVICE_DEBUG_ENABLED: ${USERMANAGEMENT_DEBUG_ENABLED:-false}
+      TARGET_BOOT_ARGS: >-
+        -Deureka.client.service-url.defaultZone=http://api-registry:8761/eureka
+        -Dspring.config.active.on-profile=docker
+        -Dspring.cloud.config.failFast=false
+        -Deureka.client.service-url.defaultZone=http://api-registry:8761/eureka
+        -Dspring.config.location=/home/conf/application.yml
+        -Dspring.datasource.username=${USERMANAGEMENT_DB_USER:-jwtuser}
+        -Dspring.datasource.password=${USERMANAGEMENT_DB_PASSWORD}
+        ${JAVA_OPTS:-}
     secrets:
     - postgres
+    - user_management
     volumes:
     - ./config/user-management.yml:/home/conf/application.yml
     - ${PCCX_LOG:-./log}/user-management:/home/logs
@@ -503,23 +530,20 @@ services:
     restart: *restart
     networks: [ backend ]
     expose: [ 8082 ]
-    env_file: ${PCCX_SECRET:-./secret}/fixme/security.env
     environment:
-      << : *postgres-environment
+      ADMIN_PASSWD: ${SECURITY_ADMIN_PASSWORD}
       ADMIN_PASSWD_FILE: /run/secrets/security_admin
-      PCC_DB: ${PCC_DB:-pccdb}
-      PCC_DB_HOST: postgres
-      PCC_DB_USER: ${PCC_DB_USER:-pcc}
-      PCC_DB_PASSWORD_FILE: /run/secrets/pccserver
-      PLATINAMONITOR_DB_USER: ${PLATINAMONITOR_DB_USER:-monitor}
-      PLATINAMONITOR_DB_PASSWORD_FILE: /run/secrets/platina_monitor
+      << : *pccserver-environment
+      << : *platina-monitor-environment
+      << : *postgres-environment
+      SECURITY_DB_HOST: postgres
       SERVICE_CONFIG_URI: /home/conf/application.yml
       SERVICE_DB: ${SECURITY_DB:-jwt}
       SERVICE_DB_HOST: postgres
       SERVICE_DB_USER: ${SECURITY_DB_USER:-jwtuser}
+      SERVICE_DB_PASSWORD: ${SECURITY_DB_PASSWORD}
       SERVICE_DB_PASSWORD_FILE: /run/secrets/security
       SERVICE_DEBUG_ENABLED: ${SECURITY_DEBUG_ENABLED:-false}
-      SECURITY_DB_HOST: postgres
     secrets:
     - postgres
     - pccserver
@@ -540,21 +564,33 @@ services:
     user: "0:0"
     networks: [ backend ]
     expose: [ 8084 ]
-    env_file: ${PCCX_SECRET:-./secret}/fixme/key-manager.env
+    configs:
+    - source: key_manager_supervisor
+      target: /etc/supervisor/conf.d/supervisord.conf
     environment:
+      << : *pccserver-environment
       << : *postgres-environment
-      PCC_DB: ${PCC_DB:-pccdb}
-      PCC_DB_HOST: postgres
-      PCC_DB_USER: ${PCC_DB_USER:-pcc}
-      PCC_DB_PASSWORD_FILE: /run/secrets/pccserver
       SERVICE_CONFIG_URI: /home/conf/application.yml
       SERVICE_DB: ${KEYMANAGER_DB:-key_manager}
       SERVICE_DB_HOST: postgres
       SERVICE_DB_USER: ${KEYMANAGER_DB_USER:-jwtuser}
+      SERVICE_DB_PASSWORD: ${KEYMANAGER_DB_PASSWORD}
       SERVICE_DB_PASSWORD_FILE: /run/secrets/key_manager
       SERVICE_DEBUG_ENABLED: ${KEYMANAGER_DEBUG_ENABLED:-false}
       SECURITY_DB_HOST: postgres
       SYSTEM_USERNAME: *system-username
+      TARGET_BOOT_ARGS: >-
+        -Deureka.client.service-url.defaultZone=http://api-registry:8761/eureka
+        -Dkey.algorithm=RSA
+        -Dkey.size=2048
+        -Dspring.application.name=key-manager
+        -Dspring.config.location=/home/conf/application.yml
+        -Dspring.cloud.config.failFast=false
+        -Dspring.datasource.url=jdbc:postgresql://postgres/${KEYMANAGER_DB:-key_manager}
+        -Dspring.datasource.driver-class-name=org.postgresql.Driver
+        -Dspring.datasource.username=${KEYMANAGER_DB_USER:-jwtuser}
+        -Dspring.datasource.password=${KEYMANAGER_DB_PASSWORD}
+        ${JAVA_OPTS:-}
     secrets:
     - key_manager
     - pccserver
@@ -578,6 +614,9 @@ services:
     networks: [ backend ]
     expose: [ 9191 ]
     hostname: monitor
+    configs:
+    - source: monitor_supervisor
+      target: /etc/supervisor/conf.d/supervisord.conf
     environment:
       KAFKA_ITERATIONS: 180
       KAFKA_PERIOD_SECS: 3
@@ -588,6 +627,16 @@ services:
       SERVICE_CONFIG_URI: /home/conf/application.yml
       SERVICE_CONFIG_BRANCH: master
       SERVICE_DEBUG_ENABLED: ${MONITOR_DEBUG_ENABLED:-false}
+      TARGET_BOOT_ARGS: >-
+        -Xmx4096m
+        -Deureka.client.service-url.defaultZone=http://api-registry:8761/eureka
+        -Dserver.port=9191
+        -Dspring.application.name=monitor
+        -Dspring.config.active.on-profile=docker
+        -Dspring.config.location=/home/conf/application.yml
+        -Dspring.cloud.config.failFast=false
+        -Dspring.cloud.config.label=master
+        ${JAVA_OPTS:-}
     volumes:
     - ./config/monitor.yml:/home/conf/application.yml
     - ${PCCX_DATA:-./data}/monitor:/home/parquetdb
@@ -602,27 +651,26 @@ services:
     networks: [ backend ]
     expose: [ 8998 ]
     privileged: true
-    env_file: ${PCCX_SECRET:-./secret}/fixme/platina-executor.env
     environment:
-      << : *postgres-environment
       KAFKA_ITERATIONS: 180
       KAFKA_PERIOD_SECS: 3
-      PHONEHOME_ACCESS_KEY: ${PHONEHOME_ACCESS_KEY:-admin}
+      << : *phone-home-environment
       PLATINAEXECUTOR_DB_HOST: postgres
       PLATINA_ITERATIONS: 90
       PLATINA_PERIOD_SECS: 3
+      << : *postgres-environment
       SERVICE_CONFIG_URI: /home/conf/application.yml
       SERVICE_CONFIG_BRANCH: ${PLATINAEXECUTOR_CONFIG_BRANCH:-master}
       SERVICE_DB: ${PLATINAEXECUTOR_DB:-executordb}
       SERVICE_DB_HOST: postgres
       SERVICE_DB_USER: ${PLATINAEXECUTOR_DB_USER:-executor}
+      SERVICE_DB_PASSWORD: ${PLATINAEXECUTOR_DB_PASSWORD}
       SERVICE_DB_PASSWORD_FILE: /run/secrets/platina_executor
       SERVICE_DEBUG_ENABLED: ${PLATINAEXECUTOR_DEBUG_ENABLED:-false}
     secrets:
     - postgres
     - *secret-ssh-id
     volumes:
-    - *pub-ssh-id
     - ./config/platina-executor.yml:/home/conf/application.yml
     - ${PCCX_DATA:-./data}/pccserver:/srv/pcc
     - ${PCCX_LOG:-./log}/platina-executor:/home/logs
@@ -633,6 +681,7 @@ services:
     - kubespray-playbooks:/home/turnkey-kubespray:ro
     - ops-playbooks:/home/ops:ro
     - orchestration-playbooks:/home/orchestration
+    - *pub-ssh-id
 
   platina-monitor:
     container_name: platina-monitor
@@ -649,17 +698,14 @@ services:
     restart: *restart
     networks: [ backend ]
     expose: [ 8995 ]
-    env_file: ${PCCX_SECRET:-./secret}/fixme/platina-monitor.env
     environment:
-      << : *postgres-environment
       KAFKA_ITERATIONS: 180
       KAFKA_PERIOD_SECS: 3
-      PHONEHOME_ACCESS_KEY: ${PHONEHOME_ACCESS_KEY:-admin}
+      << : *phone-home-environment
       PLATINA_ITERATIONS: 90
       PLATINA_PERIOD_SECS: 3
-      PLATINAMONITOR_DB_HOST: postgres
-      PLATINAMONITOR_DB: ${PLATINAMONITOR_DB:-platina_monitor}
-      PLATINAMONITOR_DB_USER: ${PLATINAMONITOR_DB_USER:-monitor}
+      << : *platina-monitor-environment
+      << : *postgres-environment
       PROMETHEUS_ITERATIONS: 180
       PROMETHEUS_PERIOD_SECS: 3
       PROMETHEUSGW_ITERATIONS: 180
@@ -669,6 +715,7 @@ services:
       SERVICE_DB: ${PLATINAMONITOR_DB:-platina_monitor}
       SERVICE_DB_HOST: postgres
       SERVICE_DB_USER: ${PLATINAMONITOR_DB_USER:-monitor}
+      SERVICE_DB_PASSWORD: ${PLATINAMONITOR_DB_PASSWORD}
       SERVICE_DB_PASSWORD_FILE: /run/secrets/platina_monitor
       SERVICE_DEBUG_ENABLED: ${PLATINAMONITOR_DEBUG_ENABLED:-false}
     secrets: [ postgres ]
@@ -687,22 +734,20 @@ services:
     expose: [ 5980 ]
     privileged: true
     cap_add: [ SYS_PTRACE ]
-    env_file:
-    - ${PCCX_SECRET:-./secret}/fixme/phone-home.env
-    - ${PCCX_SECRET:-./secret}/fixme/maas.env
     environment:
-      << : *postgres-environment
       ANSIBLE_VERBOSITY: ${ANSIBLE_VERBOSE_LEVEL:-0}
       MAAS_DB_HOST: postgres
       ORCHESTRATION_REPO_REFERENCE: master
       ORCHESTRATION_REPO_USER_TOKEN: 'empty'
-      PHONEHOME_ACCESS_KEY: ${PHONEHOME_ACCESS_KEY:-admin}
+      << : *phone-home-environment
+      << : *postgres-environment
       SERVICE_ADDITIONAL_ARGUMENTS: ${MAAS_ADDITIONAL_ARGUMENTS:-}
       SERVICE_CONFIG_URI: /home/conf/application.yml
       SERVICE_CONFIG_BRANCH: ${MAAS_CONFIG_BRANCH:-master}
       SERVICE_DB: ${MAAS_DB:-maas}
       SERVICE_DB_HOST: postgres
       SERVICE_DB_USER: ${MAAS_DB_USER:-pcc}
+      SERVICE_DB_PASSWORD: ${MAAS_DB_PASSWORD}
       SERVICE_DB_PASSWORD_FILE: /run/secrets/maas
       SERVICE_DEBUG_ENABLED: ${MAAS_DEBUG_ENABLED:-false}
       SERVICE_ADDITIONAL_ARGUMENTS: ${MAAS_ADDITIONAL_ARGUMENTS:-}
@@ -710,10 +755,10 @@ services:
     - postgres
     - *secret-ssh-id
     volumes:
-    - *pub-ssh-id
     - ./config/maas.yml:/home/conf/application.yml
     - ${PCCX_DATA:-./data}/pccserver:/srv/pcc
     - ${PCCX_LOG:-./log}/maas:/home/logs
+    - *pub-ssh-id
 
   phone-home:
     container_name: phone-home
@@ -724,20 +769,39 @@ services:
     networks: [ backend ]
     expose: [ 8383, 9000 ]
     cap_add: [ SYS_PTRACE ]
-    env_file: ${PCCX_SECRET:-./secret}/fixme/phone-home.env
+    configs:
+    - source: phone_home_supervisor
+      target: /etc/supervisor/conf.d/supervisord.conf
+    env_file: ${PWD}/secret/minio.env
     environment:
+      CUSTOMER: ${PHONEHOME_CUSTOMER:-PlatinaSystems}
       << : *postgres-environment
-      CUSTOMER: PlatinaSystems
-      MINIO_PORT: 9000
-      PHONEHOME_DB_HOST: postgres
+      << : *phone-home-environment
       SERVICES: "platina-monitor,key-manager,monitor,registry,maas,node-exporter,mailer,user-management,platina-executor,cadvisor,gateway,pccserver,security"
       SERVICE_CONFIG_URI: /home/conf/application.yml
       SERVICE_DB: ${PHONEHOME_DB:-phone_home}
       SERVICE_DB_HOST: postgres
       SERVICE_DB_USER: ${PHONEHOME_DB_USER:-phuser}
+      SERVICE_DB_PASSWORD: ${PHONEHOME_DB_PASSWORD}
       SERVICE_DB_PASSWORD_FILE: /run/secrets/phone_home
       SERVICE_DEBUG_ENABLED: ${PHONEHOME_DEBUG_ENABLED:-false}
-    secrets: [ minio ]
+      TARGET_BOOT_ARGS: >-
+        --overrideSystemProperties
+        --configProfile docker
+        --dbHost postgres
+        --dbName ${PHONEHOME_DB:-phone_home}
+        --dbUsername ${PHONEHOME_DB_USER:-phuser}
+        --dbPassword ${PHONEHOME_DB_PASSWORD}
+        --configUri /home/conf/application.yml
+        --customer ${PHONEHOME_CUSTOMER:-PlatinaSystems}
+        --services "platina-monitor,key-manager,monitor,registry,maas,node-exporter,mailer,user-management,platina-executor,cadvisor,gateway,pccserver,security"
+        --useHostnameAsAddress
+        --useHostnameAsName
+        --registryAddress api-registry
+        --maxRegistrationRetry 5
+    secrets:
+    - source: phone_home_storage
+      target: /home/conf/storage.yml
     volumes:
     - ./config/phone-home.yml:/home/conf/application.yml
     - ${PCCX_DATA:-./data}/phone-home:/data

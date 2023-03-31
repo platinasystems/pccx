@@ -144,73 +144,70 @@ test -f .env || create 0500 .env
 
 test ${MACHINE} != arm64 || grep -q vfork .env || cat >>.env <<-EOF
 	JAVA_OPTS=-Djdk.lang.Process.launchMechanism=vfork
-
-test -s ${PCCX_SECRET}/fixme/gateway.env ||
-	create 0600 ${PCCX_SECRET}/fixme/gateway.env cat <<-EOF
-	KEYSTORE_PASSWORD="$(cat ${PCCX_SECRET}/gateway.txt)"
 EOF
 
-test -s ${PCCX_SECRET}/fixme/kafka.env ||
-	create 0600 ${PCCX_SECRET}/fixme/kafka.env cat <<-EOF
-	PASSWORD="$(cat ${PCCX_SECRET}/kafka.txt)"
+grep -q GATEWAY_KEYSTORE_PASSWORD .env || cat >>.env <<-EOF
+	GATEWAY_KEYSTORE_PASSWORD="$(cat ${PCCX_SECRET}/gateway.txt)"
 EOF
 
-test -s ${PCCX_SECRET}/fixme/key-manager.env ||
-	create 0600 ${PCCX_SECRET}/fixme/key-manager.env cat <<-EOF
+grep -q KAFKA_PASSWORD .env || cat >>.env <<-EOF
+	KAFKA_PASSWORD="$(cat ${PCCX_SECRET}/kafka.txt)"
+EOF
+
+grep -q KEYMANAGER_DB_PASSWORD .env || cat >>.env <<-EOF
+	KEYMANAGER_DB_PASSWORD="$(cat ${PCCX_SECRET}/key-manager.txt)"
+EOF
+
+grep -q MAAS_DB_PASSWORD .env || cat >>.env <<-EOF
+	MAAS_DB_PASSWORD="$(cat ${PCCX_SECRET}/maas.txt)"
+EOF
+
+grep -q MAILER_PASSWORD .env || cat >>.env <<-EOF
+	MAILER_PASSWORD="$(cat ${PCCX_SECRET}/mailer.txt)"
+EOF
+
+grep -q PCC_DB_PASSWORD .env || cat >>.env <<-EOF
 	PCC_DB_PASSWORD="$(cat ${PCCX_SECRET}/pccserver.txt)"
-	POSTGRES_PASSWORD="$(cat ${PCCX_SECRET}/pccserver.txt)"
-	SERVICE_DB_PASSWORD="$(cat ${PCCX_SECRET}/key-manager.txt)"
 EOF
 
-test -s ${PCCX_SECRET}/fixme/maas.env ||
-	create 0600 ${PCCX_SECRET}/fixme/maas.env cat <<-EOF
-	POSTGRES_PASSWORD="$(cat ${PCCX_SECRET}/pccserver.txt)"
-	SERVICE_DB_PASSWORD="$(cat ${PCCX_SECRET}/maas.txt)"
-EOF
-
-test -s ${PCCX_SECRET}/fixme/mailer.env ||
-	create 0600 ${PCCX_SECRET}/fixme/mailer.env cat <<-EOF
-	SERVICE_PASSWORD="$(cat ${PCCX_SECRET}/mailer.txt)"
-EOF
-
-test -s ${PCCX_SECRET}/fixme/pccserver.env ||
-	create 0600 ${PCCX_SECRET}/fixme/pccserver.env cat <<-EOF
-	SERVICE_DB_PASSWORD="$(cat ${PCCX_SECRET}/pccserver.txt)"
+grep -q POSTGRES_PASSWORD .env || cat >>.env <<-EOF
 	POSTGRES_PASSWORD="$(cat ${PCCX_SECRET}/pccserver.txt)"
 EOF
 
-test -s ${PCCX_SECRET}/fixme/phone-home.env ||
-	create 0600 ${PCCX_SECRET}/fixme/phone-home.env cat <<-EOF
+grep -q PHONEHOME_DB_PASSWORD .env || cat >>.env <<-EOF
 	PHONEHOME_DB_PASSWORD="$(cat ${PCCX_SECRET}/phone-home.txt)"
-	PHONEHOME_SECRET_KEY="$(cat ${PCCX_SECRET}/phone-home.txt)"
-	SERVICE_DB_PASSWORD="$(cat ${PCCX_SECRET}/phone-home.txt)"
 EOF
 
-test -s ${PCCX_SECRET}/fixme/platina-executor.env ||
-	create 0600 ${PCCX_SECRET}/fixme/platina-executor.env cat <<-EOF
+grep -q PHONEHOME_SECRET_KEY .env || cat >>.env <<-EOF
 	PHONEHOME_SECRET_KEY="$(cat ${PCCX_SECRET}/phone-home.txt)"
-	POSTGRES_PASSWORD="$(cat ${PCCX_SECRET}/pccserver.txt)"
-	SERVICE_DB_PASSWORD="$(cat ${PCCX_SECRET}/platina-executor.txt)"
 EOF
 
-test -s ${PCCX_SECRET}/fixme/platina-monitor.env ||
-	create 0600 ${PCCX_SECRET}/fixme/platina-monitor.env cat <<-EOF
-	PHONEHOME_SECRET_KEY="$(cat ${PCCX_SECRET}/phone-home.txt)"
+test -f ${PCCX_SECRET}/phone-home-storage.yml ||
+	create 0600 ${PCCX_SECRET}/phone-home-storage.yml cat <<-EOF
+		destinationHost: platinadownload.auctacognitio.com
+		destinationPort: 9001
+		destinationBucket: phone-home
+		accessKey: ${PHONEHOME_ACCESS_KEY:-admin}
+		secretKey: "$(cat ${PCCX_SECRET}/phone-home.txt)"
+		dareKey: ""
+EOF
+
+grep -q PLATINAEXECUTOR_DB_PASSWORD .env || cat >>.env <<-EOF
+	PLATINAEXECUTOR_DB_PASSWORD="$(cat ${PCCX_SECRET}/platina-executor.txt)"
+EOF
+
+grep -q PLATINAMONITOR_DB_PASSWORD .env || cat >>.env <<-EOF
 	PLATINAMONITOR_DB_PASSWORD="$(cat ${PCCX_SECRET}/platina-monitor.txt)"
-	POSTGRES_PASSWORD="$(cat ${PCCX_SECRET}/pccserver.txt)"
-	SERVICE_DB_PASSWORD="$(cat ${PCCX_SECRET}/platina-monitor.txt)"
 EOF
 
-test -s ${PCCX_SECRET}/fixme/security.env ||
-	create 0600 ${PCCX_SECRET}/fixme/security.env cat <<-EOF
-	ADMIN_PASSWD="$(cat ${PCCX_SECRET}/security-admin.txt)"
-	PCC_DB_PASSWORD="$(cat ${PCCX_SECRET}/pccserver.txt)"
-	PLATINAMONITOR_DB_PASSWORD="$(cat ${PCCX_SECRET}/platina-monitor.txt)"
-	POSTGRES_PASSWORD="$(cat ${PCCX_SECRET}/pccserver.txt)"
-	SERVICE_DB_PASSWORD="$(cat ${PCCX_SECRET}/security.txt)"
+grep -q SECURITY_ADMIN_PASSWORD .env || cat >>.env <<-EOF
+	SECURITY_ADMIN_PASSWORD="$(cat ${PCCX_SECRET}/security-admin.txt)"
 EOF
 
-test -s ${PCCX_SECRET}/fixme/user-management.env ||
-	create 0600 ${PCCX_SECRET}/fixme/user-management.env cat <<-EOF
-	SERVICE_DB_PASSWORD="$(cat ${PCCX_SECRET}/user-management.txt)"
+grep -q SECURITY_DB_PASSWORD .env || cat >>.env <<-EOF
+	SECURITY_DB_PASSWORD="$(cat ${PCCX_SECRET}/security.txt)"
+EOF
+
+grep -q USERMANAGEMENT_DB_PASSWORD .env || cat >>.env <<-EOF
+	USERMANAGEMENT_DB_PASSWORD="$(cat ${PCCX_SECRET}/user-management.txt)"
 EOF
