@@ -7,11 +7,11 @@ application:
 
 registry:
   skip: false
-  address: 127.0.0.1
+  address: registry
   port: 8761
 
 gateway:
-  address: 127.0.0.1
+  address: gateway
   port: 9999
 
 phone-home:
