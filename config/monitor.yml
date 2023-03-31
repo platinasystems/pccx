@@ -164,12 +164,12 @@ monitor:
     allowUnauthenticatedSessions: false
   microservices:
     mailer:
-      url: https://mailer:9999/mailer
+      url: https://gateway:9999/mailer
       endpoints:
         mail:
           endpoint: mail
     userManagement:
-      url: https://user-management:9999/user-management
+      url: https://gateway:9999/user-management
       endpoints:
         user:
           endpoint: user
