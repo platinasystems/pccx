@@ -18,7 +18,7 @@ phone-home:
   collectionEnabled: true
   submitEnabled: true
   dailySubmission: true
-  dailyJobTime: 720
+  dailyJobTime: '12:00'
   jobCleanupAge: -2
   platinaDestination: true
   https: true
