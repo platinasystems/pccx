@@ -99,6 +99,9 @@ if test ! -s ${PCCX_SECRET}/minio.env; then
 		MINIO_ROOT_USER=minio
 		MINIO_ROOT_PASSWORD="${password}"
 		MINIO_VOLUMES=/data
+		MINIO_PORT=9000
+		MINIO_ITERATIONS=90
+		MINIO_PERIOD_SECS=3
 	EOF
 	test -s ${PCCX_SECRET}/minio.env
 fi
