@@ -9,6 +9,7 @@ test ! -r .env || . ./.env
 : ${TLSX_IMAGE:=platina.io/tlsx}
 : ${UID:=$(id -u)}
 : ${GID:=$(id -g)}
+: ${MACHINE:=$(uname -m)}
 
 if test $# -gt 0 -a "$1" = "help"; then
 	docker run --rm ${TLSX_IMAGE} help create-cert
@@ -59,7 +60,7 @@ sprompt() {
 	trap - EXIT
 	echo
 }
-	
+
 if test ! -f ${PCCX_SECRET}/cert.pem; then
 	prompt alg alorithm '{ed25519, ecdsa256, ecdsa384, ecdsa512, rsa256, rsa384, rsa512 (default ed25519)'
 	: ${alg:=ed25519}
@@ -138,6 +139,11 @@ do
 				${PCCX_SECRET}/${d}.txt
 	fi
 done
+
+test -f .env || create 0500 .env
+
+test ${MACHINE} != arm64 || grep -q vfork .env || cat >>.env <<-EOF
+	JAVA_OPTS=-Djdk.lang.Process.launchMechanism=vfork
 
 test -s ${PCCX_SECRET}/fixme/gateway.env ||
 	create 0600 ${PCCX_SECRET}/fixme/gateway.env cat <<-EOF
