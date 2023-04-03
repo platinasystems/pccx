@@ -1,7 +1,9 @@
 spring:
-  profiles: docker
   application:
     name: monitor
+  config:
+    active:
+      on-profile: docker
 
 server:
   port: 9191
