@@ -632,15 +632,14 @@ services:
       SERVICE_CONFIG_BRANCH: master
       SERVICE_DEBUG_ENABLED: ${MONITOR_DEBUG_ENABLED:-false}
       TARGET_BOOT_ARGS: >-
-        -Xmx4096m
-        -Deureka.client.service-url.defaultZone=http://api-registry:8761/eureka
         -Dserver.port=9191
         -Dspring.application.name=monitor
-        -Dspring.config.active.on-profile=docker
+        -Deureka.client.service-url.defaultZone=http://api-registry:8761/eureka
         -Dspring.config.location=/home/conf/application.yml
+        -Dspring.config.active.on-profile=docker
         -Dspring.cloud.config.failFast=false
         -Dspring.cloud.config.label=master
-        ${JAVA_OPTS:-}
+        ${JAVA_OPTS:-} -Xmx4096m
     volumes:
     - ./config/monitor.yml:/home/conf/default.yml:ro
     - ./config/monitor.yml:/home/conf/application.yml
