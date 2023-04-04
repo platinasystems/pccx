@@ -153,6 +153,15 @@ services:
     networks:
       default:
       backend:
+        aliases:
+        - kafka
+        - pccserver
+    expose:
+    - 3030
+    - 8989
+    ports:
+    - 8081:8081
+    - 9092:9092
     cap_add: [ ALL ]
     devices: [ /dev/net/tun ]
     privileged: true
@@ -168,6 +177,78 @@ services:
     - -a
     - *tap-addr
     - "@tlsx"
+
+  kafka:
+    container_name: kafka
+    platform: linux/amd64
+    image: ${KAFKA_IMAGE:-platinadownload.auctacognitio.com/fast-data-dev:2.6.2}
+    restart: *restart
+    network_mode: "service:tap"
+    privileged: true
+    user: "0:0"
+    environment:
+      << : *kafka-environment
+    volumes:
+    - ${PCCX_DATA:-./data}/kafka:/data
+    - ./config/kafka/log4j.properties:/opt/landoop/kafka/etc/kafka/log4j.properties:ro
+    - ./config/kafka/schema-registry.properties:/run/schema-registry/schema-registry.properties:ro
+    - ./config/kafka/09-topic-config.conf:/etc/supervisord.d/09-topic-config.conf:ro
+    - ./config/kafka/topic-config.sh:/opt/landoop/kafka/bin/topic-config.sh
+    - ./patch/zookeeper-3.5.9-patch.jar:/opt/landoop/kafka/share/java/kafka/zookeeper-3.5.9.jar
+    - ./patch/zookeeper-3.5.9-patch.jar:/opt/landoop/kafka/share/java/schema-registry/zookeeper-3.5.8.jar
+    - ./patch/zookeeper-3.5.9-patch.jar:/opt/landoop/kafka/share/java/landoop-common/zookeeper-3.5.7.jar
+    - ./patch/zookeeper-3.5.9-patch.jar:/opt/landoop/connectors/third-party/kafka-connect-s3/zookeeper-3.5.8.jar
+    - ./patch/zookeeper-jute-3.5.9.jar:/opt/landoop/kafka/share/java/kafka/zookeeper-jute-3.5.9.jar
+    - ./patch/zookeeper-jute-3.5.9.jar:/opt/landoop/kafka/share/java/schema-registry/zookeeper-jute-3.5.8.jar
+    - ./patch/zookeeper-jute-3.5.9.jar:/opt/landoop/kafka/share/java/landoop-common/zookeeper-jute-3.5.7.jar
+    - ./patch/zookeeper-jute-3.5.9.jar:/opt/landoop/connectors/third-party/kafka-connect-s3/zookeeper-jute-3.5.8.jar
+
+  pccserver:
+    container_name: pccserver
+    depends_on: [ kafka, postgres, minio ]
+    platform: linux/amd64
+    image: ${PCCSERVER_IMAGE:-platinadownload.auctacognitio.com/pccserver:release-branch.pcc2.1}
+    restart: *restart
+    network_mode: "service:tap"
+    privileged: true
+    cap_add:
+    - SYS_PTRACE
+    - NET_ADMIN
+    - SYS_ADMIN
+    devices: [ /dev/net/tun ]
+    env_file: ${PWD}/secret/minio.env
+    environment:
+      ANSIBLE_VERBOSITY: ${ANSIBLE_VERBOSE_LEVEL:-0}
+      HOST_IP: ${HOST_IP:-0.0.0.0}
+      << : *kafka-environment
+      KAFKA_ITERATIONS: 180
+      KAFKA_PERIOD_SECS: 3
+      << : *pccserver-environment
+      << : *phone-home-environment
+      PLATINA_ITERATIONS: 90
+      PLATINA_PERIOD_SECS: 3
+      << : *postgres-environment
+      SERVICE_CONFIG_URI: /home/conf/application.yml
+      SERVICE_CONFIG_BRANCH: master
+      SERVICE_DB: ${PCC_DB:-pccdb}
+      SERVICE_DB_HOST: postgres
+      SERVICE_DB_USER: ${PCC_DB_USER:-pcc}
+      SERVICE_DB_PASSWORD: ${PCC_DB_PASSWORD}
+      SERVICE_DB_PASSWORD_FILE: /run/secrets/pccserver
+      SERVICE_DEBUG_ENABLED: ${PCC_DEBUG_ENABLED:-false}
+    secrets:
+    - *secret-ssh-id
+    volumes:
+    - ./config/pccserver.yml:/home/conf/application.yml
+    - ${PCCX_DATA:-./data}/pccserver:/srv/pcc
+    - ${PCCX_LOG:-./log}/pccserver:/home/logs
+    - ops-playbooks:/home/ops
+    - orchestration-playbooks:/home/orchestration
+    - kubespray2-playbooks:/home/kubespray
+    - kubespray-playbooks:/home/turnkey-kubespray
+    - pccserver-playbooks:/home/ansible
+    - pccserver-supervisor-config:/etc/supervisor/conf.d
+    - *pub-ssh-id
 
   redis:
     container_name: redis
@@ -232,36 +313,6 @@ services:
     networks: [ backend ]
     expose: [ 8080 ]
     command: php -S "[::]:8080" -t /var/www/html
-
-  kafka:
-    container_name: kafka
-    platform: linux/amd64
-    image: ${KAFKA_IMAGE:-platinadownload.auctacognitio.com/fast-data-dev:2.6.2}
-    restart: *restart
-    networks: [ backend ]
-    expose:
-    - 3030
-    ports:
-    - 8081:8081
-    - 9092:9092
-    privileged: true
-    user: "0:0"
-    environment:
-      << : *kafka-environment
-    volumes:
-    - ${PCCX_DATA:-./data}/kafka:/data
-    - ./config/kafka/log4j.properties:/opt/landoop/kafka/etc/kafka/log4j.properties:ro
-    - ./config/kafka/schema-registry.properties:/run/schema-registry/schema-registry.properties:ro
-    - ./config/kafka/09-topic-config.conf:/etc/supervisord.d/09-topic-config.conf:ro
-    - ./config/kafka/topic-config.sh:/opt/landoop/kafka/bin/topic-config.sh
-    - ./patch/zookeeper-3.5.9-patch.jar:/opt/landoop/kafka/share/java/kafka/zookeeper-3.5.9.jar
-    - ./patch/zookeeper-3.5.9-patch.jar:/opt/landoop/kafka/share/java/schema-registry/zookeeper-3.5.8.jar
-    - ./patch/zookeeper-3.5.9-patch.jar:/opt/landoop/kafka/share/java/landoop-common/zookeeper-3.5.7.jar
-    - ./patch/zookeeper-3.5.9-patch.jar:/opt/landoop/connectors/third-party/kafka-connect-s3/zookeeper-3.5.8.jar
-    - ./patch/zookeeper-jute-3.5.9.jar:/opt/landoop/kafka/share/java/kafka/zookeeper-jute-3.5.9.jar
-    - ./patch/zookeeper-jute-3.5.9.jar:/opt/landoop/kafka/share/java/schema-registry/zookeeper-jute-3.5.8.jar
-    - ./patch/zookeeper-jute-3.5.9.jar:/opt/landoop/kafka/share/java/landoop-common/zookeeper-jute-3.5.7.jar
-    - ./patch/zookeeper-jute-3.5.9.jar:/opt/landoop/connectors/third-party/kafka-connect-s3/zookeeper-jute-3.5.8.jar
 
   minio:
     container_name: minio
@@ -413,54 +464,6 @@ services:
     volumes:
     - ./config/gateway.yml:/home/conf/application.yml
     - ${PCCX_LOG:-./log}/gateway:/home/logs
-
-  pccserver:
-    container_name: pccserver
-    depends_on: [ kafka, postgres, minio ]
-    platform: linux/amd64
-    image: ${PCCSERVER_IMAGE:-platinadownload.auctacognitio.com/pccserver:release-branch.pcc2.1}
-    restart: *restart
-    networks: [ backend ]
-    expose: [ 8989 ]
-    privileged: true
-    cap_add:
-    - SYS_PTRACE
-    - NET_ADMIN
-    - SYS_ADMIN
-    devices: [ /dev/net/tun ]
-    env_file: ${PWD}/secret/minio.env
-    environment:
-      ANSIBLE_VERBOSITY: ${ANSIBLE_VERBOSE_LEVEL:-0}
-      HOST_IP: ${HOST_IP:-0.0.0.0}
-      << : *kafka-environment
-      KAFKA_ITERATIONS: 180
-      KAFKA_PERIOD_SECS: 3
-      << : *pccserver-environment
-      << : *phone-home-environment
-      PLATINA_ITERATIONS: 90
-      PLATINA_PERIOD_SECS: 3
-      << : *postgres-environment
-      SERVICE_CONFIG_URI: /home/conf/application.yml
-      SERVICE_CONFIG_BRANCH: master
-      SERVICE_DB: ${PCC_DB:-pccdb}
-      SERVICE_DB_HOST: postgres
-      SERVICE_DB_USER: ${PCC_DB_USER:-pcc}
-      SERVICE_DB_PASSWORD: ${PCC_DB_PASSWORD}
-      SERVICE_DB_PASSWORD_FILE: /run/secrets/pccserver
-      SERVICE_DEBUG_ENABLED: ${PCC_DEBUG_ENABLED:-false}
-    secrets:
-    - *secret-ssh-id
-    volumes:
-    - ./config/pccserver.yml:/home/conf/application.yml
-    - ${PCCX_DATA:-./data}/pccserver:/srv/pcc
-    - ${PCCX_LOG:-./log}/pccserver:/home/logs
-    - ops-playbooks:/home/ops
-    - orchestration-playbooks:/home/orchestration
-    - kubespray2-playbooks:/home/kubespray
-    - kubespray-playbooks:/home/turnkey-kubespray
-    - pccserver-playbooks:/home/ansible
-    - pccserver-supervisor-config:/etc/supervisor/conf.d
-    - *pub-ssh-id
 
   mailer:
     container_name: mailer
