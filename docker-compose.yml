@@ -519,6 +519,7 @@ services:
     - postgres
     - user_management
     volumes:
+    - ./config/user-management.yml:/home/conf/default.yml:ro
     - ./config/user-management.yml:/home/conf/application.yml
     - ${PCCX_LOG:-./log}/user-management:/home/logs
 
@@ -638,6 +639,7 @@ services:
         -Dspring.cloud.config.label=master
         ${JAVA_OPTS:-}
     volumes:
+    - ./config/monitor.yml:/home/conf/default.yml:ro
     - ./config/monitor.yml:/home/conf/application.yml
     - ${PCCX_DATA:-./data}/monitor:/home/parquetdb
     - ${PCCX_LOG:-./log}/monitor:/home/logs
