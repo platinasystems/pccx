@@ -507,11 +507,12 @@ services:
       SERVICE_DB_PASSWORD_FILE: /run/secrets/user_management
       SERVICE_DEBUG_ENABLED: ${USERMANAGEMENT_DEBUG_ENABLED:-false}
       TARGET_BOOT_ARGS: >-
+        -Dserver.port=8083
+        -Dspring.application.name=user-management
+        -Dspring.config.location=/home/conf/application.yml
         -Deureka.client.service-url.defaultZone=http://api-registry:8761/eureka
         -Dspring.config.active.on-profile=docker
         -Dspring.cloud.config.failFast=false
-        -Deureka.client.service-url.defaultZone=http://api-registry:8761/eureka
-        -Dspring.config.location=/home/conf/application.yml
         -Dspring.datasource.username=${USERMANAGEMENT_DB_USER:-jwtuser}
         -Dspring.datasource.password=${USERMANAGEMENT_DB_PASSWORD}
         ${JAVA_OPTS:-}
