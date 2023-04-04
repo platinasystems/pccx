@@ -582,6 +582,8 @@ services:
       SECURITY_DB_HOST: postgres
       SYSTEM_USERNAME: *system-username
       TARGET_BOOT_ARGS: >-
+        -Dserver.port=8084
+        -Dspring.application.name=key-manager
         -Deureka.client.service-url.defaultZone=http://api-registry:8761/eureka
         -Dkey.algorithm=RSA
         -Dkey.size=2048
