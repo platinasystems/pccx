@@ -7,149 +7,98 @@ configs:
     file: ./config/postgresql.conf
   prometheus:
     file: ./config/prometheus.yml
-  key_manager_supervisor:
+  key-manager-supervisor:
     file: config/supervisor/key-manager.conf
-  monitor_supervisor:
+  mailer:
+    file: config/mailer.yml
+  monitor:
+    file: config/monitor.yml
+  monitor-supervisor:
     file: config/supervisor/monitor.conf
-  phone_home_supervisor:
+  phone-home-supervisor:
     file: config/supervisor/phone-home.conf
-  user_management_supervisor:
+  ssh-id:
+    file: secret/id_rsa.pub
+  user-management:
+    file: config/user-management.yml
+  user-management-supervisor:
     file: config/supervisor/user-management.conf
 
 secrets:
+  env:
+    file: .env
   cert:
-    file: ${PCCX_SECRET:-./secret}/cert.pem
+    file: secret/cert.pem
   gateway:
-    file: ${PCCX_SECRET:-./secret}/gateway.txt
+    file: config/gateway.env
+  kafka:
+    file: secret/kafka.env
   key:
-    file: ${PCCX_SECRET:-./secret}/key.pem
-  key_manager:
-    file: ${PCCX_SECRET:-./secret}/key-manager.txt
+    file: secret/key.pem
+  key-manager:
+    file: config/key-manager.env
   maas:
-    file: ${PCCX_SECRET:-./secret}/maas.txt
+    file: config/maas.env
   mailer:
-    file: ${PCCX_SECRET:-./secret}/mailer.txt
+    file: config/mailer.env
   minio:
-    file: ${PCCX_SECRET:-./secret}/minio.env
+    file: secret/minio.env
+  monitor:
+    file: config/monitor.env
+  pcc-ui:
+    file: config/pcc-ui.env
   pccserver:
-    file: ${PCCX_SECRET:-./secret}/pccserver.txt
-  phone_home:
-    file: ${PCCX_SECRET:-./secret}/phone-home.txt
-  phone_home_storage:
-    file: ${PCCX_SECRET:-./secret}/phone-home-storage.yml
-  platina_executor:
-    file: ${PCCX_SECRET:-./secret}/platina-executor.txt
-  platina_monitor:
-    file: ${PCCX_SECRET:-./secret}/platina-monitor.txt
-  postgres:
-    file: ${PCCX_SECRET:-./secret}/postgres.txt
+    file: config/pccserver.env
+  pgpass:
+    file: secret/.pgpass
+  phone-home:
+    file: config/phone-home.env
+  phone-home-storage:
+    file: secret/phone-home-storage.yml
+  platina-executor:
+    file: config/platina-executor.env
+  platina-monitor:
+    file: config/platina-monitor.env
   security:
-    file: ${PCCX_SECRET:-./secret}/security.txt
-  security_admin:
-    file: ${PCCX_SECRET:-./secret}/security-admin.txt
-  ssh_id:
-    file: ${PCCX_SECRET:-./secret}/id_rsa
-  user_management:
-    file: ${PCCX_SECRET:-./secret}/user-management.txt
+    file: config/security.env
+  ssh-id:
+    file: secret/id_rsa
+  user-management:
+    file: config/user-management.env
 
 x-custom:
-- &restart ${RESTART:-unless-stopped}
-- &tlsx-vpn ${TLSX_VPN:-10.100.0.0/24}
-- &tap-addr ${TAP_ADDR:-10.100.0.254}
-- &tlsx-image ${TLSX_IMAGE:-platinadownload.auctacognitio.com/tlsx}
-- &tlsx-verbose -verbose=${TLSX_VERBOSE:-false}
-- &kafka-environment
-  PASSWORD: ${KAFKA_PASSWORD}
-  # The basic auth password to access on UI Landoop ( username is kafka )
-  # FIXME <https://caddyserver.com/docs/caddyfile/directives/basicauth>
-  # The amount of data to retain in the log for each topic partition. By
-  # default, log size is unlimited -> set as 500MB
-  KAFKA_LOG_RETENTION_BYTES: 536870912
-  # The number of ms to keep the summary message before deleting it.
-  KAFKA_SUMMARY_RETENTION_MS: 120000
-  # The number of hours to keep a log file before deleting it. The default
-  # value is 86400000 ms (7 days) -> set as 2 h
-  KAFKA_LOG_RETENTION_MS: 7200000
-  # The message max size. The default value is 1000012 bytes (976 KB) ->
-  # set as 15728640 bytes (15 MB)
-  KAFKA_MESSAGE_MAX_BYTES: 15728640
-  ADV_HOST: ${KAFKA_ADV_HOST:-kafka}
-  KAFKA_ZOOKEEPER_CONNECT: 127.0.0.1
-  ZOOKEEPER_HOST: 127.0.0.1
-  # Disable Running tests so the cluster starts faster
-  RUNTESTS: 0
-  # Enable running 5 file source connectors that bring application logs
-  # into Kafka topics
-  FORWARDLOGS: 1
-  # Do not create sea_vessel_position_reports, nyc_yellow_taxi_trip_data,
-  # reddit_posts topics with sample Avro records.
-  SAMPLEDATA: 0
-  # Disable JMX - enabled by default on ports 9581 - 9585.
-  DISABLE_JMX: 1
-  # Expose service configuration in the UI. Useful to see how Kafka is setup.
-  BROWSECONFIGS: 1
-  # Enable supervisor web interface on port 9001 (adjust via
-  # SUPERVISORWEB_PORT) in order to control services, run tail -f, etc.
-  SUPERVISORWEB: 1
-  #CONNECT_HEAP: 3G
-  W_PERIOD_SECS: 5
-  W_ITERATIONS: 180
-  CONNECT_PORT: 0
-  REST_PORT: 0
-- &pccserver-environment
-  PCC_DB: ${PCC_DB:-pccdb}
-  PCC_DB_HOST: postgres
-  PCC_DB_USER: ${PCC_DB_USER:-pcc}
-  PCC_DB_PASSWORD: ${PCC_DB_PASSWORD}
-  # FIXME PCC_DB_PASSWORD_FILE: /run/secrets/pccserver
-- &phone-home-environment
-  PHONEHOME_DB_HOST: postgres
-  PHONEHOME_ACCESS_KEY: ${PHONEHOME_ACCESS_KEY:-admin}
-  PHONEHOME_SECRET_KEY: ${PHONEHOME_SECRET_KEY}
-  # FIXME PHONEHOME_SECRET_KEY_FILE: /run/secrets/phone_home
-- &platina-monitor-environment
-  PLATINAMONITOR_DB: ${PLATINAMONITOR_DB:-platina_monitor}
-  PLATINAMONITOR_DB_HOST: postgres
-  PLATINAMONITOR_DB_USER: ${PLATINAMONITOR_DB_USER:-monitor}
-  PLATINAMONITOR_DB_PASSWORD: ${PLATINAMONITOR_DB_PASSWORD}
-  # FIXME PLATINAMONITOR_DB_PASSWORD_FILE: /run/secrets/platina_monitor
-- &postgres-environment
-  POSTGRES_DB: ${POSTGRES_DB:-postgres}
-  POSTGRES_DB_HOST: postgres
-  POSTGRES_USER: ${POSTGRES_USER:-postgres}
-  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-  # FIXME POSTGRES_PASSWORD_FILE: /run/secrets/postgres
-- &pub-ssh-id ${PCCX_SECRET:-./secret}/id_rsa.pub:/root/.ssh/id_rsa_ansible.pub:ro
+- &public-ssh-id
+  source: ssh-id
+  target: /root/.ssh/id_rsa_ansible.pub
 - &secret-ssh-id
-  source: ssh_id
+  source: ssh-id
   target: /root/.ssh/id_rsa_ansible
-- &system-username ${SYSTEM_USERNAME:-pcc}
 
 services:
   tlsx:
     container_name: tlsx
-    image: *tlsx-image
-    restart: *restart
+    image: ${TLSX_IMAGE}
+    restart: ${RESTART}
     ports:
-    - ${TLSX_PORT:-8003}:8003
-    secrets: [ cert, key ]
-    volumes:
-    - ${PCCX_DATA:-./data}/tlsx:/var/run/ko
+    - ${TLSX_PORT}:8003
     environment:
       TLSX_CERT_FILE: /run/secrets/cert
       TLSX_KEY_FILE: /run/secrets/key
       TLSX_SUBSCRIBERS_FILE: /var/run/ko/subscribers
+    secrets: [ cert, key ]
+    volumes:
+    - ${PCCX_DATA}/tlsx:/var/run/ko
     command:
-    - *tlsx-verbose
+    - -verbose=${TLSX_VERBOSE}
     - start
     - exchange
-    - *tlsx-vpn
+    - ${TLSX_VPN}
 
   tap:
     container_name: tap
     depends_on: [ tlsx ]
-    image: *tlsx-image
-    restart: *restart
+    image: ${TLSX_IMAGE}
+    restart: ${RESTART}
     networks:
       default:
       backend:
@@ -166,30 +115,29 @@ services:
     devices: [ /dev/net/tun ]
     privileged: true
     user: "0:0"
-    secrets: [ cert, key ]
     environment:
       TLSX_CERT_FILE: /run/secrets/cert
       TLSX_KEY_FILE: /run/secrets/key
+    secrets: [ cert, key ]
     command:
-    - *tlsx-verbose
+    - -verbose=${TLSX_VERBOSE}
     - start
     - tap
     - -a
-    - *tap-addr
+    - ${TLSX_TAP_ADDR}
     - "@tlsx"
 
   kafka:
     container_name: kafka
     platform: linux/amd64
-    image: ${KAFKA_IMAGE:-platinadownload.auctacognitio.com/fast-data-dev:2.6.2}
-    restart: *restart
+    image: ${KAFKA_IMAGE}
+    restart: ${RESTART}
     network_mode: "service:tap"
     privileged: true
     user: "0:0"
-    environment:
-      << : *kafka-environment
+    env_file: [ .env, secret/kafka.env ]
     volumes:
-    - ${PCCX_DATA:-./data}/kafka:/data
+    - ${PCCX_DATA}/kafka:/data
     - ./config/kafka/log4j.properties:/opt/landoop/kafka/etc/kafka/log4j.properties:ro
     - ./config/kafka/schema-registry.properties:/run/schema-registry/schema-registry.properties:ro
     - ./config/kafka/09-topic-config.conf:/etc/supervisord.d/09-topic-config.conf:ro
@@ -207,8 +155,8 @@ services:
     container_name: pccserver
     depends_on: [ kafka, postgres, minio ]
     platform: linux/amd64
-    image: ${PCCSERVER_IMAGE:-platinadownload.auctacognitio.com/pccserver:release-branch.pcc2.1}
-    restart: *restart
+    image: ${PCC_IMAGE}
+    restart: ${RESTART}
     network_mode: "service:tap"
     privileged: true
     cap_add:
@@ -216,80 +164,70 @@ services:
     - NET_ADMIN
     - SYS_ADMIN
     devices: [ /dev/net/tun ]
-    env_file: ${PWD}/secret/minio.env
-    environment:
-      ANSIBLE_VERBOSITY: ${ANSIBLE_VERBOSE_LEVEL:-0}
-      HOST_IP: ${HOST_IP:-0.0.0.0}
-      << : *kafka-environment
-      KAFKA_ITERATIONS: 180
-      KAFKA_PERIOD_SECS: 3
-      << : *pccserver-environment
-      << : *phone-home-environment
-      PLATINA_ITERATIONS: 90
-      PLATINA_PERIOD_SECS: 3
-      << : *postgres-environment
-      SERVICE_CONFIG_URI: /home/conf/application.yml
-      SERVICE_CONFIG_BRANCH: master
-      SERVICE_DB: ${PCC_DB:-pccdb}
-      SERVICE_DB_HOST: postgres
-      SERVICE_DB_USER: ${PCC_DB_USER:-pcc}
-      SERVICE_DB_PASSWORD: ${PCC_DB_PASSWORD}
-      SERVICE_DB_PASSWORD_FILE: /run/secrets/pccserver
-      SERVICE_DEBUG_ENABLED: ${PCC_DEBUG_ENABLED:-false}
+    env_file:
+    - .env
+    - config/pccserver.env
+    - secret/kafka.env
+    - secret/minio.env
+    configs:
+    - *public-ssh-id
     secrets:
+    - env
+    - pccserver
+    - kafka
+    - minio
     - *secret-ssh-id
     volumes:
-    - ./config/pccserver.yml:/home/conf/application.yml
-    - ${PCCX_DATA:-./data}/pccserver:/srv/pcc
-    - ${PCCX_LOG:-./log}/pccserver:/home/logs
+    - ./config/pccserver.yml:${SERVICE_CONFIG_URI}
+    - ${PCCX_DATA}/pccserver:/srv/pcc
+    - ${PCCX_LOG}/pccserver:/home/logs
     - ops-playbooks:/home/ops
     - orchestration-playbooks:/home/orchestration
     - kubespray2-playbooks:/home/kubespray
     - kubespray-playbooks:/home/turnkey-kubespray
     - pccserver-playbooks:/home/ansible
     - pccserver-supervisor-config:/etc/supervisor/conf.d
-    - *pub-ssh-id
 
   redis:
     container_name: redis
-    image: ${REDIS_IMAGE:-redis:5.0.3-alpine}
+    image: ${REDIS_IMAGE}
     networks:
       backend:
         aliases:
         - monitor_redis
     expose: [ 6379 ]
     volumes:
-    - ${PCCX_DATA:-./data}/redis:/data
+    - ${PCCX_DATA}/redis:/data
 
   postgres:
     container_name: postgres
     platform: linux/amd64
-    image: ${POSTGRES_IMAGE:-platinadownload.auctacognitio.com/postgres:10.6-alpine}
-    #image: ${POSTGRES_IMAGE:-postgres}
-    restart: *restart
+    image: ${POSTGRES_IMAGE}
+    restart: ${RESTART}
     networks:
       backend:
         aliases:
         - postgres-db
     expose: [ 5432 ]
+    env_file: .env
     configs:
     - source: postgres
       target: /etc/postgresql.conf
-    environment:
-      << : *postgres-environment
-    secrets: [ postgres ]
+    secrets: [ env ]
     volumes:
-    - ${PCCX_DATA:-./data}/postgres:/var/lib/postgresql/data
-    - ${PCCX_DATA:-./data}/postgres-backup:/var/lib/postgresql/backup
-    - ${PCCX_DATA:-./data}/postgres-wals:/var/lib/postgresql/wals
-    - ${PCCX_LOG:-./log}/postgres:/var/lib/postgresql/logs
+    - ${PCCX_DATA}/postgres:/var/lib/postgresql/data
+    - ${PCCX_DATA}/postgres-backup:/var/lib/postgresql/backup
+    - ${PCCX_DATA}/postgres-wals:/var/lib/postgresql/wals
+    - ${PCCX_LOG}/postgres:/var/lib/postgresql/logs
     - ./entrypoint/postgres:/docker-entrypoint.sh:ro
+    # FIXME - ./entrypoint/postgres-init:/docker-entrypoint-initdb.d:ro
+    # FIXME - ./entrypoint/postgres-sql:/docker-entrypoint-sql:ro
     command: postgres -c config_file=/etc/postgresql.conf
 
   prometheus:
     container_name: prometheus
-    image: ${PROMETHEUS_IMAGE:-prom/prometheus}
-    restart: *restart
+    image: ${PROMETHEUS_IMAGE}
+    restart: ${RESTART}
     networks: [ backend ]
     expose: [ 9090 ]
     privileged: true
@@ -298,8 +236,8 @@ services:
     - source: prometheus
       target: /config.yml
     volumes:
-    - ${PCCX_DATA:-./data}/prometheus:/prometheus
-    - &prometheus-rules ${PCCX_DATA:-./data}/prometheus-rules:/home/prometheus/rules/
+    - ${PCCX_DATA}/prometheus:/prometheus
+    - &prometheus-rules ${PCCX_DATA}/prometheus-rules:/home/prometheus/rules/
     command: >-
       --config.file=/config.yml
       --web.enable-lifecycle
@@ -308,37 +246,38 @@ services:
   adminer:
     container_name: adminer
     depends_on: [ postgres ]
-    image: ${ADMINER_IMAGE:-adminer}
-    restart: *restart
+    image: ${ADMINER_IMAGE}
+    restart: ${RESTART}
     networks: [ backend ]
     expose: [ 8080 ]
     command: php -S "[::]:8080" -t /var/www/html
 
   minio:
     container_name: minio
-    image: ${MINIO_IMAGE:-minio/minio}
-    restart: *restart
+    image: ${MINIO_IMAGE}
+    restart: ${RESTART}
     networks:
       backend:
         aliases:
         - storage
     expose: [ 9000, 9001 ]
+    environment:
+      MINIO_CONFIG_ENV_FILE: "/run/secrets/minio"
     secrets:
+    - env
     - minio
 #   - source: cert
 #     target: /mnt/certs/public.crt
-#     uid: ${UID:-0}
-#     gid: ${GID:-0}
+#     uid: ${MINIO_UID}
+#     gid: ${MINIO_GID}
 #     mode: 0400
 #   - source: key
 #     target: /mnt/certs/private.key
-#     uid: ${UID:-0}
-#     gid: ${GID:-0}
+#     uid: ${MINIO_UID}
+#     gid: ${MINIO_GID}
 #     mode: 0400
-    environment:
-      MINIO_CONFIG_ENV_FILE: "/run/secrets/minio"
     volumes:
-    - ${PCCX_DATA:-./data}/minio:/data
+    - ${PCCX_DATA}/minio:/data
     healthcheck:
       interval: 30s
       timeout: 2s
@@ -354,8 +293,8 @@ services:
 
   cadvisor:
     container_name: cadvisor
-    image: ${CADVISOR_IMAGE:-zcube/cadvisor}
-    restart: *restart
+    image: ${CADVISOR_IMAGE}
+    restart: ${RESTART}
     networks: [ backend ]
     expose: [ 8080 ]
     labels:
@@ -375,8 +314,8 @@ services:
 
   node-exporter:
     container_name: node-exporter
-    image: ${NODE_EXPORTER_IMAGE:-prom/node-exporter}
-    restart: *restart
+    image: ${NODE_EXPORTER_IMAGE}
+    restart: ${RESTART}
     networks: [ backend ]
     expose: [ 9100 ]
     volumes:
@@ -391,8 +330,8 @@ services:
 
   alertmanager:
     container_name: alertmanager
-    image: ${ALERTMANAGER_IMAGE:-prom/alertmanager}
-    restart: *restart
+    image: ${ALERTMANAGER_IMAGE}
+    restart: ${RESTART}
     networks: [ backend ]
     expose: [ 9093 ]
     labels:
@@ -401,15 +340,15 @@ services:
     - source: alertmanager
       target: /config.yml
     volumes:
-    - ${PCCX_DATA:-./data}/alertmanager:/data
+    - ${PCCX_DATA}/alertmanager:/data
     command:
     - '--config.file=/config.yml'
     - '--storage.path=/data'
 
   pushgateway:
     container_name: pushgateway
-    image: ${PUSHGATEWAY_IMAGE:-prom/pushgateway}
-    restart: *restart
+    image: ${PUSHGATEWAY_IMAGE}
+    restart: ${RESTART}
     networks: [ backend ]
     expose: [ 9091 ]
     labels:
@@ -420,267 +359,212 @@ services:
     container_name: api-registry
     depends_on: [ postgres ]
     platform: linux/amd64
-    image: ${API_REGISTRY_IMAGE:-platinadownload.auctacognitio.com/registry:release-branch.pcc2.1}
-    restart: *restart
+    image: ${APIREGISTRY_IMAGE}
+    restart: ${RESTART}
     networks:
       backend:
         aliases:
         - registry
     expose: [ 8761 ]
+    env_file: .env
     environment:
-      << : *postgres-environment
-      SERVICE_DEBUG_ENABLED: ${API_REGISTRY_DEBUG_ENABLED:-false}
-    secrets: [ postgres ]
+      SERVICE_DEBUG_ENABLED: ${APIREGISTRY_DEBUG_ENABLED}
+    secrets: [ env ]
     volumes:
-    - ${PCCX_LOG:-./log}/api-registry:/home/logs
+    - ${PCCX_LOG}/api-registry:/home/logs
 
   gateway:
     container_name: gateway
     platform: linux/amd64
-    image: ${GATEWAY_IMAGE:-platinadownload.auctacognitio.com/gateway:release-branch.pcc2.1}
-    restart: *restart
+    image: ${GATEWAY_IMAGE}
+    restart: ${RESTART}
     networks: [ backend ]
     ports: [ "443:9999" ]
     expose: [ 9999 ]
+    env_file: [ .env, config/gateway.env ]
     secrets:
+    - env
     - gateway
     - source: cert
       target: /home/certs/server.crt
-      uid: ${UID:-0}
-      gid: ${GID:-0}
+      uid: ${GATEWAY_UID}
+      gid: ${GATEWAY_GID}
       mode: 0400
     - source: key
       target: /home/certs/server.key
-      uid: ${UID:-0}
-      gid: ${GID:-0}
+      uid: ${GATEWAY_UID}
+      gid: ${GATEWAY_GID}
       mode: 0400
-    environment:
-      KEYSTORE_PASSWORD: ${GATEWAY_KEYSTORE_PASSWORD}
-      PLATINA_ITERATIONS: 180
-      PLATINA_PERIOD_SECS: 5
-      SERVICE_CONFIG_URI: /home/conf/application.yml
-      SERVICE_CONFIG_BRANCH: master
-      SERVICE_DEBUG_ENABLED: ${GATEWAY_DEBUG_ENABLED:-false}
     volumes:
-    - ./config/gateway.yml:/home/conf/application.yml
-    - ${PCCX_LOG:-./log}/gateway:/home/logs
+    - ./config/gateway.yml:${SERVICE_CONFIG_URI}
+    - ${PCCX_LOG}/gateway:/home/logs
 
   mailer:
     container_name: mailer
     depends_on: [ api-registry, postgres ]
     platform: linux/amd64
-    image: ${MAILER_IMAGE:-platinadownload.auctacognitio.com/mailer:release-branch.pcc2.1}
-    restart: *restart
+    image: ${MAILER_IMAGE}
+    restart: ${RESTART}
     networks: [ backend ]
     expose: [ 8787 ]
     cap_add: [ SYS_PTRACE ]
-    environment:
-      << : *phone-home-environment
-      << : *postgres-environment
-      SERVICE_CONFIG_URI: /home/conf/application.yml
-      SERVICE_CONFIG_BRANCH: ${MAILER_CONFIG_BRANCH:-master}
-      SERVICE_USER: ${MAILER_USER:-pcc_notifications@platinasystems.com}
-      SERVICE_PASSWORD: ${MAILER_PASSWORD}
-      SERVICE_PASSWORD_FILE: /run/secrets/mailer
-      SERVICE_DEBUG_ENABLED: ${MAILER_DEBUG_ENABLED:-false}
-    secrets: [ postgres ]
+    env_file: [ .env, config/mailer.env ]
+    configs:
+    - source: mailer
+      target: /home/conf/default.yml
+    secrets: [ env, mailer ]
     volumes:
-    - ./config/mailer.yml:/home/conf/application.yml
-    - ${PCCX_LOG:-./log}/mailer:/home/logs
+    - ./config/mailer.yml:${SERVICE_CONFIG_URI}
+    - ${PCCX_LOG}/mailer:/home/logs
 
   user-management:
     container_name: user-management
     depends_on: [ postgres, mailer, minio ]
     platform: linux/amd64
-    image: ${USER_MANAGEMENT_IMAGE:-platinadownload.auctacognitio.com/user-management:release-branch.pcc2.1}
-    restart: *restart
+    image: ${USERMANAGEMENT_IMAGE}
+    restart: ${RESTART}
     networks: [ backend ]
     expose: [ 8083 ]
-    configs:
-    - source: user_management_supervisor
-      target: /etc/supervisor/conf.d/supervisord.conf
-    env_file: ${PWD}/secret/minio.env
+    env_file:
+    - .env
+    - config/user-management.env
+    - secret/minio.env
     environment:
-      << : *postgres-environment
-      SERVICE_CONFIG_URI: /home/conf/application.yml
-      SERVICE_DB: ${USERMANAGEMENT_DB:-jwt}
-      SERVICE_DB_HOST: postgres
-      SERVICE_DB_USER: ${USERMANAGEMENT_DB_USER:-jwtuser}
-      SERVICE_DB_PASSWORD: ${USERMANAGEMENT_DB_PASSWORD}
-      SERVICE_DB_PASSWORD_FILE: /run/secrets/user_management
-      SERVICE_DEBUG_ENABLED: ${USERMANAGEMENT_DEBUG_ENABLED:-false}
       TARGET_BOOT_ARGS: >-
         -Dserver.port=8083
         -Dspring.application.name=user-management
-        -Dspring.config.location=/home/conf/application.yml
-        -Deureka.client.service-url.defaultZone=http://api-registry:8761/eureka
+        -Dspring.config.location=${SERVICE_CONFIG_URI}
+        -Deureka.client.service-url.defaultZone=${APIREGISTRY_URI}
         -Dspring.config.active.on-profile=docker
         -Dspring.cloud.config.failFast=false
-        -Dspring.datasource.username=${USERMANAGEMENT_DB_USER:-jwtuser}
+        -Dspring.datasource.username=${USERMANAGEMENT_DB_USER}
         -Dspring.datasource.password=${USERMANAGEMENT_DB_PASSWORD}
-        ${JAVA_OPTS:-}
+        ${JAVA_OPTS}
+    configs:
+    - source: user-management
+      target: /home/conf/default.yml
+    - source: user-management-supervisor
+      target: /etc/supervisor/conf.d/supervisord.conf
     secrets:
-    - postgres
-    - user_management
+    - env
+    - minio
+    - user-management
     volumes:
-    - ./config/user-management.yml:/home/conf/default.yml:ro
-    - ./config/user-management.yml:/home/conf/application.yml
-    - ${PCCX_LOG:-./log}/user-management:/home/logs
+    - ./config/user-management.yml:${SERVICE_CONFIG_URI}
+    - ${PCCX_LOG}/user-management:/home/logs
 
   security:
     container_name: security
     depends_on: [ postgres ]
     platform: linux/amd64
-    image: ${SECURITY_IMAGE:-platinadownload.auctacognitio.com/security:release-branch.pcc2.1}
-    restart: *restart
+    image: ${SECURITY_IMAGE}
+    restart: ${RESTART}
     networks: [ backend ]
     expose: [ 8082 ]
-    environment:
-      ADMIN_PASSWD: ${SECURITY_ADMIN_PASSWORD}
-      ADMIN_PASSWD_FILE: /run/secrets/security_admin
-      << : *pccserver-environment
-      << : *platina-monitor-environment
-      << : *postgres-environment
-      SECURITY_DB_HOST: postgres
-      SERVICE_CONFIG_URI: /home/conf/application.yml
-      SERVICE_DB: ${SECURITY_DB:-jwt}
-      SERVICE_DB_HOST: postgres
-      SERVICE_DB_USER: ${SECURITY_DB_USER:-jwtuser}
-      SERVICE_DB_PASSWORD: ${SECURITY_DB_PASSWORD}
-      SERVICE_DB_PASSWORD_FILE: /run/secrets/security
-      SERVICE_DEBUG_ENABLED: ${SECURITY_DEBUG_ENABLED:-false}
+    env_file:
+    - .env
+    - config/security.env
     secrets:
-    - postgres
-    - pccserver
-    - platina_monitor
+    - env
     - security
     volumes:
-    - ./config/security.yml:/home/conf/application.yml
-    - ${PCCX_LOG:-./log}/security:/home/logs
+    - ./config/security.yml:${SERVICE_CONFIG_URI}
+    - ${PCCX_LOG}/security:/home/logs
 
   key-manager:
     container_name: key-manager
     depends_on: [ postgres ]
     platform: linux/amd64
-    image: ${KEY_MANAGER_IMAGE:-platinadownload.auctacognitio.com/key-manager:release-branch.pcc2.1}
-    restart: *restart
+    image: ${KEYMANAGER_IMAGE}
+    restart: ${RESTART}
     cap_add: [ ALL ]
     privileged: true
     user: "0:0"
     networks: [ backend ]
     expose: [ 8084 ]
-    configs:
-    - source: key_manager_supervisor
-      target: /etc/supervisor/conf.d/supervisord.conf
+    env_file: [ .env, config/key-manager.env ]
     environment:
-      << : *pccserver-environment
-      << : *postgres-environment
-      SERVICE_CONFIG_URI: /home/conf/application.yml
-      SERVICE_DB: ${KEYMANAGER_DB:-key_manager}
-      SERVICE_DB_HOST: postgres
-      SERVICE_DB_USER: ${KEYMANAGER_DB_USER:-jwtuser}
-      SERVICE_DB_PASSWORD: ${KEYMANAGER_DB_PASSWORD}
-      SERVICE_DB_PASSWORD_FILE: /run/secrets/key_manager
-      SERVICE_DEBUG_ENABLED: ${KEYMANAGER_DEBUG_ENABLED:-false}
-      SECURITY_DB_HOST: postgres
-      SYSTEM_USERNAME: *system-username
       TARGET_BOOT_ARGS: >-
         -Dserver.port=8084
         -Dspring.application.name=key-manager
-        -Deureka.client.service-url.defaultZone=http://api-registry:8761/eureka
+        -Deureka.client.service-url.defaultZone=${APIREGISTRY_URI}
         -Dkey.algorithm=RSA
         -Dkey.size=2048
         -Dspring.application.name=key-manager
-        -Dspring.config.location=/home/conf/application.yml
+        -Dspring.config.location=${SERVICE_CONFIG_URI}
         -Dspring.cloud.config.failFast=false
-        -Dspring.datasource.url=jdbc:postgresql://postgres/${KEYMANAGER_DB:-key_manager}
+        -Dspring.datasource.url=jdbc:postgresql://postgres/${KEYMANAGER_DB}
         -Dspring.datasource.driver-class-name=org.postgresql.Driver
-        -Dspring.datasource.username=${KEYMANAGER_DB_USER:-jwtuser}
+        -Dspring.datasource.username=${KEYMANAGER_DB_USER}
         -Dspring.datasource.password=${KEYMANAGER_DB_PASSWORD}
-        ${JAVA_OPTS:-}
+        ${JAVA_OPTS}
+    configs:
+    - source: key-manager-supervisor
+      target: /etc/supervisor/conf.d/supervisord.conf
+    - source: ssh-id
+      target: /home/keys/system.pub
     secrets:
-    - key_manager
-    - pccserver
-    - postgres
-    - source: ssh_id
+    - env
+    - key-manager
+    - source: ssh-id
       target: /home/keys/system.pem
-      uid: ${UID:-0}
-      gid: ${GID:-0}
+      uid: ${KEYMANAGER_UID}
+      gid: ${KEYMANAGER_GID}
       mode: 0400
     volumes:
-    - ./config/key-manager.yml:/home/conf/application.yml
-    - ${PCCX_LOG:-./log}/key-manager:/home/logs
-    - ${PCCX_SECRET:-./secret}/id_rsa.pub:/home/keys/system.pub:ro
+    - ./config/key-manager.yml:${SERVICE_CONFIG_URI}
+    - ${PCCX_LOG}/key-manager:/home/logs
 
   monitor:
     container_name: monitor
     depends_on: [ redis, kafka ]
     platform: linux/amd64
-    image: ${MAILER_IMAGE:-platinadownload.auctacognitio.com/monitor:release-branch.pcc2.1}
-    restart: *restart
+    image: ${MONITOR_IMAGE}
+    restart: ${RESTART}
     networks: [ backend ]
     expose: [ 9191 ]
-    hostname: monitor
-    configs:
-    - source: monitor_supervisor
-      target: /etc/supervisor/conf.d/supervisord.conf
+    env_file: [ .env, config/monitor.env ]
     environment:
-      KAFKA_ITERATIONS: 180
-      KAFKA_PERIOD_SECS: 3
-      PLATINA_ITERATIONS: 90
-      PLATINA_PERIOD_SECS: 3
-      REDIS_ITERATIONS: 90
-      REDIS_PERIOD_SECS: 3
-      SERVICE_CONFIG_URI: /home/conf/application.yml
-      SERVICE_CONFIG_BRANCH: master
-      SERVICE_DEBUG_ENABLED: ${MONITOR_DEBUG_ENABLED:-false}
       TARGET_BOOT_ARGS: >-
         -Dserver.port=9191
         -Dspring.application.name=monitor
-        -Deureka.client.service-url.defaultZone=http://api-registry:8761/eureka
-        -Dspring.config.location=/home/conf/application.yml
+        -Deureka.client.service-url.defaultZone=${APIREGISTRY_URI}
+        -Dspring.config.location=${SERVICE_CONFIG_URI}
         -Dspring.config.active.on-profile=docker
         -Dspring.cloud.config.failFast=false
-        -Dspring.cloud.config.label=master
-        ${JAVA_OPTS:-} -Xmx4096m
+        -Dspring.cloud.config.label=${MONITOR_CONFIG_BRANCH}
+        ${JAVA_OPTS} -Xmx4096m
+    configs:
+    - source: monitor
+      target: /home/conf/default.yml
+    - source: monitor-supervisor
+      target: /etc/supervisor/conf.d/supervisord.conf
+    secrets: [ env, monitor ]
     volumes:
-    - ./config/monitor.yml:/home/conf/default.yml:ro
-    - ./config/monitor.yml:/home/conf/application.yml
-    - ${PCCX_DATA:-./data}/monitor:/home/parquetdb
-    - ${PCCX_LOG:-./log}/monitor:/home/logs
+    - ./config/monitor.yml:${SERVICE_CONFIG_URI}
+    - ${PCCX_DATA}/monitor:/home/parquetdb
+    - ${PCCX_LOG}/monitor:/home/logs
 
   platina-executor:
     container_name: platina-executor
     depends_on: [ kafka, pccserver ]
     platform: linux/amd64
-    image: ${PLATINA_EXECUTOR_IMAGE:-platinadownload.auctacognitio.com/platina-executor:release-branch.pcc2.1}
-    restart: *restart
+    image: ${PLATINAEXECUTOR_IMAGE}
+    restart: ${RESTART}
     networks: [ backend ]
     expose: [ 8998 ]
     privileged: true
-    environment:
-      KAFKA_ITERATIONS: 180
-      KAFKA_PERIOD_SECS: 3
-      << : *phone-home-environment
-      PLATINAEXECUTOR_DB_HOST: postgres
-      PLATINA_ITERATIONS: 90
-      PLATINA_PERIOD_SECS: 3
-      << : *postgres-environment
-      SERVICE_CONFIG_URI: /home/conf/application.yml
-      SERVICE_CONFIG_BRANCH: ${PLATINAEXECUTOR_CONFIG_BRANCH:-master}
-      SERVICE_DB: ${PLATINAEXECUTOR_DB:-executordb}
-      SERVICE_DB_HOST: postgres
-      SERVICE_DB_USER: ${PLATINAEXECUTOR_DB_USER:-executor}
-      SERVICE_DB_PASSWORD: ${PLATINAEXECUTOR_DB_PASSWORD}
-      SERVICE_DB_PASSWORD_FILE: /run/secrets/platina_executor
-      SERVICE_DEBUG_ENABLED: ${PLATINAEXECUTOR_DEBUG_ENABLED:-false}
+    env_file: [ .env, config/platina-executor.env ]
+    configs:
+    - *public-ssh-id
     secrets:
-    - postgres
+    - env
+    - platina-executor
     - *secret-ssh-id
     volumes:
-    - ./config/platina-executor.yml:/home/conf/application.yml
-    - ${PCCX_DATA:-./data}/pccserver:/srv/pcc
-    - ${PCCX_LOG:-./log}/platina-executor:/home/logs
+    - ./config/platina-executor.yml:${SERVICE_CONFIG_URI}
+    - ${PCCX_DATA}/pccserver:/srv/pcc
+    - ${PCCX_LOG}/platina-executor:/home/logs
     - /usr/bin/docker:/usr/bin/docker
     - /var/run/docker.sock:/var/run/docker.sock
     - pccserver-playbooks:/home/ansible:ro
@@ -688,7 +572,6 @@ services:
     - kubespray-playbooks:/home/turnkey-kubespray:ro
     - ops-playbooks:/home/ops:ro
     - orchestration-playbooks:/home/orchestration
-    - *pub-ssh-id
 
   platina-monitor:
     container_name: platina-monitor
@@ -701,148 +584,105 @@ services:
     - pushgateway
     - mailer
     platform: linux/amd64
-    image: ${PLATINA_MONITOR_IMAGE:-platinadownload.auctacognitio.com/platina-monitor:release-branch.pcc2.1}
-    restart: *restart
+    image: ${PLATINAMONITOR_IMAGE}
+    restart: ${RESTART}
     networks: [ backend ]
     expose: [ 8995 ]
-    environment:
-      KAFKA_ITERATIONS: 180
-      KAFKA_PERIOD_SECS: 3
-      << : *phone-home-environment
-      PLATINA_ITERATIONS: 90
-      PLATINA_PERIOD_SECS: 3
-      << : *platina-monitor-environment
-      << : *postgres-environment
-      PROMETHEUS_ITERATIONS: 180
-      PROMETHEUS_PERIOD_SECS: 3
-      PROMETHEUSGW_ITERATIONS: 180
-      PROMETHEUSGW_PERIOD_SECS: 3
-      SERVICE_CONFIG_URI: /home/conf/application.yml
-      SERVICE_CONFIG_BRANCH: ${PLATINAMONITOR_CONFIG_BRANCH:-master}
-      SERVICE_DB: ${PLATINAMONITOR_DB:-platina_monitor}
-      SERVICE_DB_HOST: postgres
-      SERVICE_DB_USER: ${PLATINAMONITOR_DB_USER:-monitor}
-      SERVICE_DB_PASSWORD: ${PLATINAMONITOR_DB_PASSWORD}
-      SERVICE_DB_PASSWORD_FILE: /run/secrets/platina_monitor
-      SERVICE_DEBUG_ENABLED: ${PLATINAMONITOR_DEBUG_ENABLED:-false}
-    secrets: [ postgres ]
+    env_file: [ .env, config/platina-monitor.env ]
+    secrets: [ env, platina-monitor ]
     volumes:
-    - ./config/platina-monitor.yml:/home/conf/application.yml
-    - ${PCCX_LOG:-./log}/platina-monitor:/home/logs
+    - ./config/platina-monitor.yml:${SERVICE_CONFIG_URI}
+    - ${PCCX_LOG}/platina-monitor:/home/logs
     - *prometheus-rules
 
   maas:
     container_name: maas
     depends_on: [ api-registry, postgres ]
     platform: linux/amd64
-    image: ${MAILER_IMAGE:-platinadownload.auctacognitio.com/maas:release-branch.pcc2.1}
-    restart: *restart
+    image: ${MAAS_IMAGE}
+    restart: ${RESTART}
     networks: [ backend ]
     expose: [ 5980 ]
     privileged: true
     cap_add: [ SYS_PTRACE ]
-    environment:
-      ANSIBLE_VERBOSITY: ${ANSIBLE_VERBOSE_LEVEL:-0}
-      MAAS_DB_HOST: postgres
-      ORCHESTRATION_REPO_REFERENCE: master
-      ORCHESTRATION_REPO_USER_TOKEN: 'empty'
-      << : *phone-home-environment
-      << : *postgres-environment
-      SERVICE_ADDITIONAL_ARGUMENTS: ${MAAS_ADDITIONAL_ARGUMENTS:-}
-      SERVICE_CONFIG_URI: /home/conf/application.yml
-      SERVICE_CONFIG_BRANCH: ${MAAS_CONFIG_BRANCH:-master}
-      SERVICE_DB: ${MAAS_DB:-maas}
-      SERVICE_DB_HOST: postgres
-      SERVICE_DB_USER: ${MAAS_DB_USER:-pcc}
-      SERVICE_DB_PASSWORD: ${MAAS_DB_PASSWORD}
-      SERVICE_DB_PASSWORD_FILE: /run/secrets/maas
-      SERVICE_DEBUG_ENABLED: ${MAAS_DEBUG_ENABLED:-false}
-      SERVICE_ADDITIONAL_ARGUMENTS: ${MAAS_ADDITIONAL_ARGUMENTS:-}
+    env_file: [ .env, config/maas.env ]
+    configs:
+    - *public-ssh-id
     secrets:
-    - postgres
+    - env
+    - maas
     - *secret-ssh-id
     volumes:
-    - ./config/maas.yml:/home/conf/application.yml
-    - ${PCCX_DATA:-./data}/pccserver:/srv/pcc
-    - ${PCCX_LOG:-./log}/maas:/home/logs
-    - *pub-ssh-id
+    - ./config/maas.yml:${SERVICE_CONFIG_URI}
+    - ${PCCX_DATA}/pccserver:/srv/pcc
+    - ${PCCX_LOG}/maas:/home/logs
 
   phone-home:
     container_name: phone-home
     depends_on: [ api-registry ]
     platform: linux/amd64
-    image: ${PHONE_HOME_IMAGE:-platinadownload.auctacognitio.com/phone-home:release-branch.pcc2.1}
-    restart: *restart
+    image: ${PHONEHOME_IMAGE}
+    restart: ${RESTART}
     networks: [ backend ]
     expose: [ 8383, 9000 ]
     cap_add: [ SYS_PTRACE ]
-    configs:
-    - source: phone_home_supervisor
-      target: /etc/supervisor/conf.d/supervisord.conf
-    env_file: ${PWD}/secret/minio.env
+    env_file:
+    - .env
+    - config/phone-home.env
+    - secret/minio.env
     environment:
-      CUSTOMER: ${PHONEHOME_CUSTOMER:-PlatinaSystems}
-      << : *postgres-environment
-      << : *phone-home-environment
-      SERVICES: "platina-monitor,key-manager,monitor,registry,maas,node-exporter,mailer,user-management,platina-executor,cadvisor,gateway,pccserver,security"
-      SERVICE_CONFIG_URI: /home/conf/application.yml
-      SERVICE_DB: ${PHONEHOME_DB:-phone_home}
-      SERVICE_DB_HOST: postgres
-      SERVICE_DB_USER: ${PHONEHOME_DB_USER:-phuser}
-      SERVICE_DB_PASSWORD: ${PHONEHOME_DB_PASSWORD}
-      SERVICE_DB_PASSWORD_FILE: /run/secrets/phone_home
-      SERVICE_DEBUG_ENABLED: ${PHONEHOME_DEBUG_ENABLED:-false}
       TARGET_BOOT_ARGS: >-
         --overrideSystemProperties
         --configProfile docker
         --dbHost postgres
-        --dbName ${PHONEHOME_DB:-phone_home}
-        --dbUsername ${PHONEHOME_DB_USER:-phuser}
+        --dbName ${PHONEHOME_DB}
+        --dbUsername ${PHONEHOME_DB_USER}
         --dbPassword ${PHONEHOME_DB_PASSWORD}
-        --configUri /home/conf/application.yml
-        --customer ${PHONEHOME_CUSTOMER:-PlatinaSystems}
+        --configUri ${SERVICE_CONFIG_URI}
+        --customer ${PHONEHOME_CUSTOMER}
         --services "platina-monitor,key-manager,monitor,registry,maas,node-exporter,mailer,user-management,platina-executor,cadvisor,gateway,pccserver,security"
         --useHostnameAsAddress
         --useHostnameAsName
         --registryAddress api-registry
         --maxRegistrationRetry 5
+    configs:
+    - source: phone-home-supervisor
+      target: /etc/supervisor/conf.d/supervisord.conf
     secrets:
-    - source: phone_home_storage
+    - env
+    - phone-home
+    - source: phone-home-storage
       target: /home/conf/storage.yml
     volumes:
-    - ./config/phone-home.yml:/home/conf/application.yml
-    - ${PCCX_DATA:-./data}/phone-home:/data
-    - ${PCCX_LOG:-./log}/phone-home:/home/logs
-    - ${PUB_GPG_KEY:-./pubkey/platina.asc}:/root/.gnupg/pubkey.asc:ro
+    - ./config/phone-home.yml:${SERVICE_CONFIG_URI}
+    - ${PCCX_DATA}/phone-home:/data
+    - ${PCCX_LOG}/phone-home:/home/logs
+    - ${PHONEHOME_PUBKEY_FILE}:/root/.gnupg/pubkey.asc:ro
 
   pcc-ui:
     container_name: pcc-ui
     platform: linux/amd64
-    image: ${PCC_UI_IMAGE:-platinadownload.auctacognitio.com/pcc-ui:release-branch.pcc2.1}
-    restart: *restart
+    image: ${PCCUI_IMAGE}
+    restart: ${RESTART}
     networks: [ backend ]
     expose: [ 443 ]
+    env_file: [ .env, config/pcc-ui.env ]
     secrets:
+    - env
+    - pcc-ui
     - source: cert
       target: /usr/local/apache2/conf/server.crt
-      uid: ${UID:-0}
-      gid: ${GID:-0}
+      uid: ${PCCUI_UID}
+      gid: ${PCCUI_GID}
       mode: 0400
     - source: key
       target: /usr/local/apache2/conf/server.key
-      uid: ${UID:-0}
-      gid: ${GID:-0}
+      uid: ${PCCUI_UID}
+      gid: ${PCCUI_GID}
       mode: 0400
-    environment:
-      HOST_IP: ${HOST_IP:-0.0.0.0}
-      PLATINA_ITERATIONS: 200
-      PLATINA_PERIOD_SECS: 5
-      SERVICE_CONFIG_URI: /home/conf/application.yml
-      SERVICE_CONFIG_BRANCH: master
-      SERVICE_DEBUG_ENABLED: ${PCCUI_DEBUG_ENABLED:-false}
     volumes:
-    - ./config/pcc-ui.yml:/home/conf/application.yml
-    - ${PCCX_LOG:-./log}/pcc-ui:/usr/local/apache2/logs
+    - ./config/pcc-ui.yml:${SERVICE_CONFIG_URI}
+    - ${PCCX_LOG}/pcc-ui:/usr/local/apache2/logs
 
 networks:
   backend: {}
