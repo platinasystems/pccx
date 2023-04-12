@@ -87,7 +87,7 @@ services:
       TLSX_SUBSCRIBERS_FILE: /var/run/ko/subscribers
     secrets: [ cert, key ]
     volumes:
-    - ${PCCX_DATA}/tlsx:/var/run/ko
+    - ./data/tlsx:/var/run/ko
     command:
     - -verbose=${TLSX_VERBOSE}
     - start
@@ -137,7 +137,7 @@ services:
     user: "0:0"
     env_file: [ .env, secret/kafka.env ]
     volumes:
-    - ${PCCX_DATA}/kafka:/data
+    - ./data/kafka:/data
     - ./config/kafka/log4j.properties:/opt/landoop/kafka/etc/kafka/log4j.properties:ro
     - ./config/kafka/schema-registry.properties:/run/schema-registry/schema-registry.properties:ro
     - ./config/kafka/09-topic-config.conf:/etc/supervisord.d/09-topic-config.conf:ro
@@ -179,8 +179,8 @@ services:
     - *secret-ssh-id
     volumes:
     - ./config/pccserver.yml:${SERVICE_CONFIG_URI}
-    - ${PCCX_DATA}/pccserver:/srv/pcc
-    - ${PCCX_LOG}/pccserver:/home/logs
+    - ./data/pccserver:/srv/pcc
+    - ./log/pccserver:/home/logs
     - ops-playbooks:/home/ops
     - orchestration-playbooks:/home/orchestration
     - kubespray2-playbooks:/home/kubespray
@@ -197,7 +197,7 @@ services:
         - monitor_redis
     expose: [ 6379 ]
     volumes:
-    - ${PCCX_DATA}/redis:/data
+    - ./data/redis:/data
 
   postgres:
     container_name: postgres
@@ -215,10 +215,10 @@ services:
       target: /etc/postgresql.conf
     secrets: [ env ]
     volumes:
-    - ${PCCX_DATA}/postgres:/var/lib/postgresql/data
-    - ${PCCX_DATA}/postgres-backup:/var/lib/postgresql/backup
-    - ${PCCX_DATA}/postgres-wals:/var/lib/postgresql/wals
-    - ${PCCX_LOG}/postgres:/var/lib/postgresql/logs
+    - ./data/postgres:/var/lib/postgresql/data
+    - ./data/postgres-backup:/var/lib/postgresql/backup
+    - ./data/postgres-wals:/var/lib/postgresql/wals
+    - ./log/postgres:/var/lib/postgresql/logs
     - ./entrypoint/postgres:/docker-entrypoint.sh:ro
     # FIXME - ./entrypoint/postgres-init:/docker-entrypoint-initdb.d:ro
     # FIXME - ./entrypoint/postgres-sql:/docker-entrypoint-sql:ro
@@ -236,8 +236,8 @@ services:
     - source: prometheus
       target: /config.yml
     volumes:
-    - ${PCCX_DATA}/prometheus:/prometheus
-    - &prometheus-rules ${PCCX_DATA}/prometheus-rules:/home/prometheus/rules/
+    - ./data/prometheus:/prometheus
+    - &prometheus-rules ./data/prometheus-rules:/home/prometheus/rules/
     command: >-
       --config.file=/config.yml
       --web.enable-lifecycle
@@ -277,7 +277,7 @@ services:
 #     gid: ${MINIO_GID}
 #     mode: 0400
     volumes:
-    - ${PCCX_DATA}/minio:/data
+    - ./data/minio:/data
     healthcheck:
       interval: 30s
       timeout: 2s
@@ -340,7 +340,7 @@ services:
     - source: alertmanager
       target: /config.yml
     volumes:
-    - ${PCCX_DATA}/alertmanager:/data
+    - ./data/alertmanager:/data
     command:
     - '--config.file=/config.yml'
     - '--storage.path=/data'
@@ -371,7 +371,7 @@ services:
       SERVICE_DEBUG_ENABLED: ${APIREGISTRY_DEBUG_ENABLED}
     secrets: [ env ]
     volumes:
-    - ${PCCX_LOG}/api-registry:/home/logs
+    - ./log/api-registry:/home/logs
 
   gateway:
     container_name: gateway
@@ -397,7 +397,7 @@ services:
       mode: 0400
     volumes:
     - ./config/gateway.yml:${SERVICE_CONFIG_URI}
-    - ${PCCX_LOG}/gateway:/home/logs
+    - ./log/gateway:/home/logs
 
   mailer:
     container_name: mailer
@@ -415,7 +415,7 @@ services:
     secrets: [ env, mailer ]
     volumes:
     - ./config/mailer.yml:${SERVICE_CONFIG_URI}
-    - ${PCCX_LOG}/mailer:/home/logs
+    - ./log/mailer:/home/logs
 
   user-management:
     container_name: user-management
@@ -451,7 +451,7 @@ services:
     - user-management
     volumes:
     - ./config/user-management.yml:${SERVICE_CONFIG_URI}
-    - ${PCCX_LOG}/user-management:/home/logs
+    - ./log/user-management:/home/logs
 
   security:
     container_name: security
@@ -469,7 +469,7 @@ services:
     - security
     volumes:
     - ./config/security.yml:${SERVICE_CONFIG_URI}
-    - ${PCCX_LOG}/security:/home/logs
+    - ./log/security:/home/logs
 
   key-manager:
     container_name: key-manager
@@ -513,7 +513,7 @@ services:
       mode: 0400
     volumes:
     - ./config/key-manager.yml:${SERVICE_CONFIG_URI}
-    - ${PCCX_LOG}/key-manager:/home/logs
+    - ./log/key-manager:/home/logs
 
   monitor:
     container_name: monitor
@@ -542,8 +542,8 @@ services:
     secrets: [ env, monitor ]
     volumes:
     - ./config/monitor.yml:${SERVICE_CONFIG_URI}
-    - ${PCCX_DATA}/monitor:/home/parquetdb
-    - ${PCCX_LOG}/monitor:/home/logs
+    - ./data/monitor:/home/parquetdb
+    - ./log/monitor:/home/logs
 
   platina-executor:
     container_name: platina-executor
@@ -563,8 +563,8 @@ services:
     - *secret-ssh-id
     volumes:
     - ./config/platina-executor.yml:${SERVICE_CONFIG_URI}
-    - ${PCCX_DATA}/pccserver:/srv/pcc
-    - ${PCCX_LOG}/platina-executor:/home/logs
+    - ./data/pccserver:/srv/pcc
+    - ./log/platina-executor:/home/logs
     - /usr/bin/docker:/usr/bin/docker
     - /var/run/docker.sock:/var/run/docker.sock
     - pccserver-playbooks:/home/ansible:ro
@@ -592,7 +592,7 @@ services:
     secrets: [ env, platina-monitor ]
     volumes:
     - ./config/platina-monitor.yml:${SERVICE_CONFIG_URI}
-    - ${PCCX_LOG}/platina-monitor:/home/logs
+    - ./log/platina-monitor:/home/logs
     - *prometheus-rules
 
   maas:
@@ -614,8 +614,8 @@ services:
     - *secret-ssh-id
     volumes:
     - ./config/maas.yml:${SERVICE_CONFIG_URI}
-    - ${PCCX_DATA}/pccserver:/srv/pcc
-    - ${PCCX_LOG}/maas:/home/logs
+    - ./data/pccserver:/srv/pcc
+    - ./log/maas:/home/logs
 
   phone-home:
     container_name: phone-home
@@ -655,8 +655,8 @@ services:
       target: /home/conf/storage.yml
     volumes:
     - ./config/phone-home.yml:${SERVICE_CONFIG_URI}
-    - ${PCCX_DATA}/phone-home:/data
-    - ${PCCX_LOG}/phone-home:/home/logs
+    - ./data/phone-home:/data
+    - ./log/phone-home:/home/logs
     - ${PHONEHOME_PUBKEY_FILE}:/root/.gnupg/pubkey.asc:ro
 
   pcc-ui:
@@ -682,7 +682,7 @@ services:
       mode: 0400
     volumes:
     - ./config/pcc-ui.yml:${SERVICE_CONFIG_URI}
-    - ${PCCX_LOG}/pcc-ui:/usr/local/apache2/logs
+    - ./log/pcc-ui:/usr/local/apache2/logs
 
 networks:
   backend: {}
