@@ -439,10 +439,10 @@ EOF
 
 test -f ${PCCX_SECRET}/phone-home-storage.yml ||
 	create 0600 ${PCCX_SECRET}/phone-home-storage.yml cat <<-EOF
-		destinationHost: platinadownload.auctacognitio.com
-		destinationPort: 9001
-		destinationBucket: phone-home
-		accessKey: ${PHONEHOME_ACCESS_KEY}
-		secretKey: "${PHONEHOME_SECRET_KEY}"
-		dareKey: ""
+	destinationHost: platinadownload.auctacognitio.com
+	destinationPort: 9001
+	destinationBucket: phone-home
+	accessKey: ${PHONEHOME_ACCESS_KEY}
+	secretKey: "${PHONEHOME_SECRET_KEY}"
+	dareKey: ""
 EOF
