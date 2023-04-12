@@ -3,10 +3,6 @@ version: '3.4'
 configs:
   alertmanager:
     file: ./config/alertmanager.yml
-  postgres:
-    file: ./config/postgresql.conf
-  prometheus:
-    file: ./config/prometheus.yml
   key-manager-supervisor:
     file: config/supervisor/key-manager.conf
   mailer:
@@ -15,6 +11,14 @@ configs:
     file: config/monitor.yml
   monitor-supervisor:
     file: config/supervisor/monitor.conf
+  pccserver-engine:
+    file: ./config/pccserver-engine.sh
+  pccserver-supervisor:
+    file: config/supervisor/pccserver.conf
+  postgres:
+    file: ./config/postgresql.conf
+  prometheus:
+    file: ./config/prometheus.yml
   phone-home-supervisor:
     file: config/supervisor/phone-home.conf
   ssh-id:
@@ -164,18 +168,17 @@ services:
     - NET_ADMIN
     - SYS_ADMIN
     devices: [ /dev/net/tun ]
-    env_file:
-    - .env
-    - config/pccserver.env
-    - secret/kafka.env
-    - secret/minio.env
     configs:
+    - source: pccserver-engine
+      target: /home/scripts/microservice/engine.sh
+    - source: pccserver-supervisor
+      target: /home/conf/pccserver.conf
     - *public-ssh-id
     secrets:
     - env
-    - pccserver
     - kafka
     - minio
+    - pccserver
     - *secret-ssh-id
     volumes:
     - ./config/pccserver.yml:${SERVICE_CONFIG_URI}
@@ -186,7 +189,6 @@ services:
     - kubespray2-playbooks:/home/kubespray
     - kubespray-playbooks:/home/turnkey-kubespray
     - pccserver-playbooks:/home/ansible
-    - pccserver-supervisor-config:/etc/supervisor/conf.d
 
   redis:
     container_name: redis
@@ -694,4 +696,3 @@ volumes:
   ops-playbooks:
   orchestration-playbooks:
   pccserver-playbooks:
-  pccserver-supervisor-config:
