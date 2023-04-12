@@ -379,43 +379,43 @@ create 0600 ${tenv} sort -u .env && mv ${tenv} .env
 
 test -f ${PCCX_SECRET}/kafka.env ||
 	create 0600 ${PCCX_SECRET}/kafka.env cat <<-EOF
-	PASSWORD: ${KAFKA_PASSWORD}
+	PASSWORD=${KAFKA_PASSWORD}
 	# The basic auth password to access on UI Landoop ( username is kafka )
 	# FIXME <https://caddyserver.com/docs/caddyfile/directives/basicauth>
 	# The amount of data to retain in the log for each topic partition. By
 	# default, log size is unlimited -> set as 500MB
-	KAFKA_LOG_RETENTION_BYTES: 536870912
+	KAFKA_LOG_RETENTION_BYTES=536870912
 	# The number of ms to keep the summary message before deleting it.
-	KAFKA_SUMMARY_RETENTION_MS: 120000
+	KAFKA_SUMMARY_RETENTION_MS=120000
 	# The number of hours to keep a log file before deleting it. The default
 	# value is 86400000 ms (7 days) -> set as 2 h
-	KAFKA_LOG_RETENTION_MS: 7200000
+	KAFKA_LOG_RETENTION_MS=7200000
 	# The message max size. The default value is 1000012 bytes (976 KB) ->
 	# set as 15728640 bytes (15 MB)
-	KAFKA_MESSAGE_MAX_BYTES: 15728640
+	KAFKA_MESSAGE_MAX_BYTES=15728640
 	ADV_HOST: ${KAFKA_ADV_HOST}
-	KAFKA_ZOOKEEPER_CONNECT: 127.0.0.1
-	ZOOKEEPER_HOST: 127.0.0.1
+	KAFKA_ZOOKEEPER_CONNECT=127.0.0.1
+	ZOOKEEPER_HOST=127.0.0.1
 	# Disable Running tests so the cluster starts faster
-	RUNTESTS: 0
+	RUNTESTS=0
 	# Enable running 5 file source connectors that bring application logs
 	# into Kafka topics
-	FORWARDLOGS: 1
+	FORWARDLOGS=1
 	# Do not create sea_vessel_position_reports, nyc_yellow_taxi_trip_data,
 	# reddit_posts topics with sample Avro records.
-	SAMPLEDATA: 0
+	SAMPLEDATA=0
 	# Disable JMX - enabled by default on ports 9581 - 9585.
-	DISABLE_JMX: 1
+	DISABLE_JMX=1
 	# Expose service configuration in the UI. Useful to see how Kafka is setup.
-	BROWSECONFIGS: 1
+	BROWSECONFIGS=1
 	# Enable supervisor web interface on port 9001 (adjust via
 	# SUPERVISORWEB_PORT) in order to control services, run tail -f, etc.
-	SUPERVISORWEB: 1
-	#CONNECT_HEAP: 3G
-	W_PERIOD_SECS: 5
-	W_ITERATIONS: 180
-	CONNECT_PORT: 0
-	REST_PORT: 0
+	SUPERVISORWEB=1
+	#CONNECT_HEAP=3G
+	W_PERIOD_SECS=5
+	W_ITERATIONS=180
+	CONNECT_PORT=0
+	REST_PORT=0
 EOF
 
 test -f ${PCCX_SECRET}/minio.env ||
