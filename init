@@ -1,138 +1,5 @@
 #!/bin/sh -e
 
-test ! -r .env || . ./.env
-
-: ${UID:=$(id -u)}
-: ${GID:=$(id -g)}
-: ${MACHINE:=$(uname -m)}
-
-: ${PCCX_DATA:=${PWD}/data}
-: ${PCCX_LOG:=${PWD}/log}
-: ${PCCX_SECRET:=${PWD}/secret}
-
-: ${reg:=platinadownload.auctacognitio.com}
-: ${rel:=release-branch.pcc2.1}
-
-: ${ADMINER_IMAGE:=adminer}
-: ${ALERTMANAGER_IMAGE:=prom/alertmanager}
-: ${APIREGISTRY_IMAGE:=${reg}/registry:${rel}}
-: ${CADVISOR_IMAGE:=zcube/cadvisor}
-: ${GATEWAY_IMAGE:=${reg}/gateway:${rel}}
-: ${KAFKA_IMAGE:=${reg}/fast-data-dev:2.6.2}
-: ${KEYMANAGER_IMAGE:=${reg}/key-manager:${rel}}
-: ${MAAS_IMAGE:=${reg}/maas:${rel}}
-: ${MAILER_IMAGE:=${reg}/mailer:${rel}}
-: ${MINIO_IMAGE:=minio/minio}
-: ${MONITOR_IMAGE:=${reg}/monitor:${rel}}
-: ${NODE_EXPORTER_IMAGE:=prom/node-exporter}
-: ${PCCUI_IMAGE:=${reg}/pcc-ui:${rel}}
-: ${PCC_IMAGE:=${reg}/pccserver:${rel}}
-: ${PHONEHOME_IMAGE:=${reg}/phone-home:${rel}}
-: ${PLATINAEXECUTOR_IMAGE:=${reg}/platina-executor:${rel}}
-: ${PLATINAMONITOR_IMAGE:=${reg}/platina-monitor:${rel}}
-: ${POSTGRES_IMAGE:=${reg}/postgres:10.6-alpine}
-: ${PROMETHEUS_IMAGE:=prom/prometheus}
-: ${PUSHGATEWAY_IMAGE:=prom/pushgateway}
-: ${REDIS_IMAGE:=redis:5.0.3-alpine}
-: ${SECURITY_IMAGE:=${reg}/security:${rel}}
-: ${TLSX_IMAGE:=${reg}/tlsx}
-: ${USERMANAGEMENT_IMAGE:=${reg}/user-management:${rel}}
-
-: ${KEYMANAGER_DB:=key_manager}
-: ${KEYMANAGER_DB_HOST:=postgres}
-: ${KEYMANAGER_DB_PORT:=5432}
-: ${KEYMANAGER_DB_USER:=jwtuser}
-: ${MAAS_DB:=maas}
-: ${MAAS_DB_HOST:=postgres}
-: ${MAAS_DB_PORT:=5432}
-: ${MAAS_DB_USER:=pcc}
-: ${PCC_DB:=pccdb}
-: ${PCC_DB_HOST:=postgres}
-: ${PCC_DB_PORT:=5432}
-: ${PCC_DB_USER:=pcc}
-: ${PHONEHOME_ACCESS_KEY:=admin}
-: ${PHONEHOME_DB:=phone_home}
-: ${PHONEHOME_DB_HOST:=postgres}
-: ${PHONEHOME_DB_PORT:=5432}
-: ${PHONEHOME_DB_USER:=phuser}
-: ${PLATINAEXECUTOR_DB:=executordb}
-: ${PLATINAEXECUTOR_DB_HOST:=postgres}
-: ${PLATINAEXECUTOR_DB_PORT:=5432}
-: ${PLATINAEXECUTOR_DB_USER:=executor}
-: ${PLATINAMONITOR_DB:=platina_monitor}
-: ${PLATINAMONITOR_DB_HOST:=postgres}
-: ${PLATINAMONITOR_DB_PORT:=5432}
-: ${PLATINAMONITOR_DB_USER:=monitor}
-: ${POSTGRES_DB:=postgres}
-: ${POSTGRES_DB_HOST:=postgres}
-: ${POSTGRES_DB_PORT:=5432}
-: ${POSTGRES_DB_USER:=postgres}
-: ${POSTGRES_USER:=postgres}
-: ${RESTART:=unless-stopped}
-: ${SECURITY_DB:=jwt}
-: ${SECURITY_DB_HOST:=postgres}
-: ${SECURITY_DB_PORT:=5432}
-: ${SECURITY_DB_USER:=jwtuser}
-: ${SYSTEM_USERNAME:=pcc}
-: ${TLSX_PORT:=8003}
-: ${TLSX_TAP_ADDR:=10.100.0.254}
-: ${TLSX_VERBOSE:=false}
-: ${TLSX_VPN:=10.100.0.0/24}
-: ${USERMANAGEMENT_DB:=jwt}
-: ${USERMANAGEMENT_DB_HOST:=postgres}
-: ${USERMANAGEMENT_DB_PORT:=5432}
-: ${USERMANAGEMENT_DB_USER:=jwtuser}
-
-: ${APIREGISTRY_DEBUG_ENABLED:=false}
-: ${GATEWAY_DEBUG_ENABLED:=false}
-: ${KEYMANAGER_DEBUG_ENABLED:=false}
-: ${MAAS_DEBUG_ENABLED:=false}
-: ${MAILER_DEBUG_ENABLED:=false}
-: ${MONITOR_DEBUG_ENABLED:=false}
-: ${PCCUI_DEBUG_ENABLED:=false}
-: ${PCC_DEBUG_ENABLED:=false}
-: ${PHONEHOME_DEBUG_ENABLED:=false}
-: ${PLATINAEXECUTOR_DEBUG_ENABLED:=false}
-: ${PLATINAMONITOR_DEBUG_ENABLED:=false}
-: ${SECURITY_DEBUG_ENABLED:=false}
-: ${USERMANAGEMENT_DEBUG_ENABLED:=false}
-
-: ${GATEWAY_CONFIG_BRANCH:=master}
-: ${MAAS_CONFIG_BRANCH:=master}
-: ${MAILER_CONFIG_BRANCH:=master}
-: ${MONITOR_CONFIG_BRANCH:=master}
-: ${PCC_CONFIG_BRANCH:=master}
-: ${PCCUI_CONFIG_BRANCH:=master}
-: ${PLATINAEXECUTOR_CONFIG_BRANCH:=master}
-: ${PLATINAMONITOR_CONFIG_BRANCH:=master}
-
-: ${APIREGISTRY_URI:=http://api-registry:8761/eureka}
-: ${SERVICE_CONFIG_URI:=/home/conf/application.yml}
-
-: ${KAFKA_ADV_HOST:=kafka}
-
-: ${PCC_HOST_IP:=0.0.0.0}
-: ${PCCUI_HOST_IP:=0.0.0.0}
-
-: ${GATEWAY_UID:=0}
-: ${GATEWAY_GID:=0}
-: ${KEYMANAGER_UID:=0}
-: ${KEYMANAGER_GID:=0}
-: ${MINIO_UID:=0}
-: ${MINIO_GID:=0}
-: ${PCCUI_UID:=0}
-: ${PCCUI_GID:=0}
-
-: ${ANSIBLE_VERBOSITY:=0}
-
-: ${MAILER_USER:=pcc_notifications@platinasystems.com}
-
-: ${PHONEHOME_CUSTOMER:=PlatinaSystems}
-: ${PHONEHOME_PUBKEY_FILE:=./pubkey/platina.asc}
-
-mkdir -p -m 0755 ${PCCX_DATA} ${PCCX_LOG}
-mkdir -p -m 0700 ${PCCX_SECRET}
-
 create() {
 	mode=$1; shift
 	file=$1; shift
@@ -173,6 +40,88 @@ sprompt() {
 	trap - EXIT
 	echo
 }
+
+tsort=tsort$$
+
+test ! -r .env || . ./.env
+
+: ${SERVICE_CONFIG_URI:=/home/conf/application.yml}
+
+: ${UID:=$(id -u)}
+: ${GID:=$(id -g)}
+: ${MACHINE:=$(uname -m)}
+
+case ${MACHINE} in
+arm64 ) : ${JAVA_OPTS:=-Djdk.lang.Process.launchMechanism=vfork} ;
+esac
+
+: ${reg:=platinadownload.auctacognitio.com}
+: ${rel:=release-branch.pcc2.1}
+
+: ${ADMINER_IMAGE:=adminer}
+: ${ALERTMANAGER_IMAGE:=prom/alertmanager}
+: ${APIREGISTRY_IMAGE:=${reg}/registry:${rel}}
+: ${CADVISOR_IMAGE:=zcube/cadvisor}
+: ${GATEWAY_IMAGE:=${reg}/gateway:${rel}}
+: ${KAFKA_IMAGE:=${reg}/fast-data-dev:2.6.2}
+: ${KEYMANAGER_IMAGE:=${reg}/key-manager:${rel}}
+: ${MAAS_IMAGE:=${reg}/maas:${rel}}
+: ${MAILER_IMAGE:=${reg}/mailer:${rel}}
+: ${MINIO_IMAGE:=minio/minio}
+: ${MONITOR_IMAGE:=${reg}/monitor:${rel}}
+: ${NODE_EXPORTER_IMAGE:=prom/node-exporter}
+: ${PCCUI_IMAGE:=${reg}/pcc-ui:${rel}}
+: ${PCC_IMAGE:=${reg}/pccserver:${rel}}
+: ${PHONEHOME_IMAGE:=${reg}/phone-home:${rel}}
+: ${PLATINAEXECUTOR_IMAGE:=${reg}/platina-executor:${rel}}
+: ${PLATINAMONITOR_IMAGE:=${reg}/platina-monitor:${rel}}
+: ${POSTGRES_IMAGE:=${reg}/postgres:10.6-alpine}
+: ${PROMETHEUS_IMAGE:=prom/prometheus}
+: ${PUSHGATEWAY_IMAGE:=prom/pushgateway}
+: ${REDIS_IMAGE:=redis:5.0.3-alpine}
+: ${SECURITY_IMAGE:=${reg}/security:${rel}}
+: ${TLSX_IMAGE:=${reg}/tlsx}
+: ${USERMANAGEMENT_IMAGE:=${reg}/user-management:${rel}}
+
+test -f .env || create 0600 .env
+
+for v in \
+	SERVICE_CONFIG_URI \
+	JAVA_OPTS \
+	ADMINER_IMAGE \
+	ALERTMANAGER_IMAGE \
+	APIREGISTRY_IMAGE \
+	CADVISOR_IMAGE \
+	GATEWAY_IMAGE \
+	KAFKA_IMAGE \
+	KEYMANAGER_IMAGE \
+	MAAS_IMAGE \
+	MAILER_IMAGE \
+	MINIO_IMAGE \
+	MONITOR_IMAGE \
+	PCCUI_IMAGE \
+	PCC_IMAGE \
+	PHONEHOME_IMAGE \
+	PLATINAEXECUTOR_IMAGE \
+	PLATINAMONITOR_IMAGE \
+	POSTGRES_IMAGE \
+	PROMETHEUS_IMAGE \
+	PUSHGATEWAY_IMAGE \
+	SECURITY_IMAGE \
+	TLSX_IMAGE \
+	USERMANAGEMENT_IMAGE \
+;do
+	grep -q "^${v}=" .env || eval echo $v=\$$v >>.env
+done
+
+create 0600 ${tsort} sort -u .env && mv ${tsort} .env
+
+: ${PCCX_SECRET:=${PWD}/secret}
+
+mkdir -p -m 0700 ${PCCX_SECRET}
+
+passfn=${PCCX_SECRET}/pccx.env
+test ! -r $passfn || . $passfn
 
 if test ! -f ${PCCX_SECRET}/cert.pem; then
 	prompt algorithm '{ed25519, ecdsa256, ecdsa384, ecdsa512, rsa256, rsa384, rsa512} (default ed25519)'
@@ -236,213 +185,30 @@ test "${MINIO_ROOT_PASSWORD}" != "" ||
 test "${MINIO_ROOT_PASSWORD}" != "" ||
 	MINIO_ROOT_PASSWORD=miniominio
 
-test -f .env || create 0600 .env
-
-case ${MACHINE} in
-arm64 ) : ${JAVA_OPTS:=-Djdk.lang.Process.launchMechanism=vfork} ;
-esac
+test -f $passfn || create 0600 $passfn
 
 for v in \
-	ADMINER_IMAGE \
-	ALERTMANAGER_IMAGE \
-	ANSIBLE_VERBOSITY \
-	APIREGISTRY_DEBUG_ENABLED \
-	APIREGISTRY_IMAGE \
-	APIREGISTRY_URI \
-	CADVISOR_IMAGE \
-	GATEWAY_CONFIG_BRANCH \
-	GATEWAY_DEBUG_ENABLED \
-	GATEWAY_GID \
-	GATEWAY_IMAGE \
 	GATEWAY_KEYSTORE_PASSWORD \
-	GATEWAY_UID \
-	JAVA_OPTS \
-	KAFKA_ADV_HOST \
-	KAFKA_IMAGE \
 	KAFKA_PASSWORD \
-	KEYMANAGER_DB \
-	KEYMANAGER_DB_HOST \
 	KEYMANAGER_DB_PASSWORD \
-	KEYMANAGER_DB_PORT \
-	KEYMANAGER_DB_USER \
-	KEYMANAGER_DEBUG_ENABLED \
-	KEYMANAGER_GID \
-	KEYMANAGER_IMAGE \
-	KEYMANAGER_UID \
-	MAAS_CONFIG_BRANCH \
-	MAAS_DB \
-	MAAS_DB_HOST \
 	MAAS_DB_PASSWORD \
-	MAAS_DB_PORT \
-	MAAS_DB_USER \
-	MAAS_DEBUG_ENABLED \
-	MAAS_IMAGE \
-	MAILER_CONFIG_BRANCH \
-	MAILER_DEBUG_ENABLED \
-	MAILER_IMAGE \
 	MAILER_PASSWORD \
-	MAILER_USER \
-	MINIO_GID \
-	MINIO_IMAGE \
 	MINIO_ROOT_PASSWORD \
-	MINIO_UID \
-	MONITOR_CONFIG_BRANCH \
-	MONITOR_DEBUG_ENABLED \
-	MONITOR_IMAGE \
 	NODE_EXPORTER_IMAGE \
-	PCCUI_CONFIG_BRANCH \
-	PCCUI_DEBUG_ENABLED \
-	PCCUI_GID \
-	PCCUI_HOST_IP \
-	PCCUI_IMAGE \
-	PCCUI_UID \
-	PCC_CONFIG_BRANCH \
-	PCC_DB \
-	PCC_DB_HOST \
 	PCC_DB_PASSWORD \
-	PCC_DB_PORT \
-	PCC_DB_USER \
-	PCC_DEBUG_ENABLED \
-	PCC_HOST_IP \
-	PCC_IMAGE \
-	PHONEHOME_ACCESS_KEY \
-	PHONEHOME_CUSTOMER \
-	PHONEHOME_DB \
-	PHONEHOME_DB_HOST \
 	PHONEHOME_DB_PASSWORD \
-	PHONEHOME_DB_PORT \
-	PHONEHOME_DB_USER \
-	PHONEHOME_DEBUG_ENABLED \
-	PHONEHOME_IMAGE \
-	PHONEHOME_PUBKEY_FILE \
 	PHONEHOME_SECRET_KEY \
-	PLATINAEXECUTOR_CONFIG_BRANCH \
-	PLATINAEXECUTOR_DB \
-	PLATINAEXECUTOR_DB_HOST \
 	PLATINAEXECUTOR_DB_PASSWORD \
-	PLATINAEXECUTOR_DB_PORT \
-	PLATINAEXECUTOR_DB_USER \
-	PLATINAEXECUTOR_DEBUG_ENABLED \
-	PLATINAEXECUTOR_IMAGE \
-	PLATINAMONITOR_CONFIG_BRANCH \
-	PLATINAMONITOR_DB \
-	PLATINAMONITOR_DB_HOST \
 	PLATINAMONITOR_DB_PASSWORD \
-	PLATINAMONITOR_DB_PORT \
-	PLATINAMONITOR_DB_USER \
-	PLATINAMONITOR_DEBUG_ENABLED \
-	PLATINAMONITOR_IMAGE \
-	POSTGRES_DB \
-	POSTGRES_DB_HOST \
 	POSTGRES_DB_PASSWORD \
-	POSTGRES_DB_PORT \
-	POSTGRES_DB_USER \
-	POSTGRES_IMAGE \
 	POSTGRES_PASSWORD \
 	POSTGRES_USER \
-	PROMETHEUS_IMAGE \
-	PUSHGATEWAY_IMAGE \
 	REDIS_IMAGE \
-	RESTART \
 	SECURITY_ADMIN_PASSWORD \
-	SECURITY_DB \
-	SECURITY_DB_HOST \
 	SECURITY_DB_PASSWORD \
-	SECURITY_DB_PORT \
-	SECURITY_DB_USER \
-	SECURITY_DEBUG_ENABLED \
-	SECURITY_IMAGE \
-	SERVICE_CONFIG_URI \
-	SYSTEM_USERNAME \
-	TLSX_IMAGE \
-	TLSX_PORT \
-	TLSX_TAP_ADDR \
-	TLSX_VERBOSE \
-	TLSX_VPN \
-	USERMANAGEMENT_DB \
-	USERMANAGEMENT_DB_HOST \
 	USERMANAGEMENT_DB_PASSWORD \
-	USERMANAGEMENT_DB_PORT \
-	USERMANAGEMENT_DB_USER \
-	USERMANAGEMENT_DEBUG_ENABLED \
-	USERMANAGEMENT_IMAGE
-do
-	grep -q "^${v}=" .env || eval echo $v=\$$v >>.env
+;do
+	grep -q "^${v}=" $passfn || eval echo : \\\${$v:=\$$v} >>$passfn
 done
 
-tenv=env$$
-create 0600 ${tenv} sort -u .env && mv ${tenv} .env
-
-test -f ${PCCX_SECRET}/kafka.env ||
-	create 0600 ${PCCX_SECRET}/kafka.env cat <<-EOF
-	PASSWORD=${KAFKA_PASSWORD}
-	# The basic auth password to access on UI Landoop ( username is kafka )
-	# FIXME <https://caddyserver.com/docs/caddyfile/directives/basicauth>
-	# The amount of data to retain in the log for each topic partition. By
-	# default, log size is unlimited -> set as 500MB
-	KAFKA_LOG_RETENTION_BYTES=536870912
-	# The number of ms to keep the summary message before deleting it.
-	KAFKA_SUMMARY_RETENTION_MS=120000
-	# The number of hours to keep a log file before deleting it. The default
-	# value is 86400000 ms (7 days) -> set as 2 h
-	KAFKA_LOG_RETENTION_MS=7200000
-	# The message max size. The default value is 1000012 bytes (976 KB) ->
-	# set as 15728640 bytes (15 MB)
-	KAFKA_MESSAGE_MAX_BYTES=15728640
-	ADV_HOST: ${KAFKA_ADV_HOST}
-	KAFKA_ZOOKEEPER_CONNECT=127.0.0.1
-	ZOOKEEPER_HOST=127.0.0.1
-	# Disable Running tests so the cluster starts faster
-	RUNTESTS=0
-	# Enable running 5 file source connectors that bring application logs
-	# into Kafka topics
-	FORWARDLOGS=1
-	# Do not create sea_vessel_position_reports, nyc_yellow_taxi_trip_data,
-	# reddit_posts topics with sample Avro records.
-	SAMPLEDATA=0
-	# Disable JMX - enabled by default on ports 9581 - 9585.
-	DISABLE_JMX=1
-	# Expose service configuration in the UI. Useful to see how Kafka is setup.
-	BROWSECONFIGS=1
-	# Enable supervisor web interface on port 9001 (adjust via
-	# SUPERVISORWEB_PORT) in order to control services, run tail -f, etc.
-	SUPERVISORWEB=1
-	#CONNECT_HEAP=3G
-	W_PERIOD_SECS=5
-	W_ITERATIONS=180
-	CONNECT_PORT=0
-	REST_PORT=0
-EOF
-
-test -f ${PCCX_SECRET}/minio.env ||
-	create 0600 ${PCCX_SECRET}/minio.env cat <<-EOF
-	MINIO_ROOT_USER=minio
-	MINIO_ROOT_PASSWORD="${MINIO_ROOT_PASSWORD}"
-	MINIO_VOLUMES=/data
-	MINIO_PORT=9000
-	MINIO_ITERATIONS=90
-	MINIO_PERIOD_SECS=3
-EOF
-
-test -f ${PCCX_SECRET}/.pgpass ||
-	create 0600 ${PCCX_SECRET}/.pgpass sort -u <<-EOF
-	${KEYMANAGER_DB_HOST}:${KEYMANAGER_DB_PORT}:${KEYMANAGER_DB}:${KEYMANAGER_DB_USER}:${KEYMANAGER_DB_PASSWORD}
-	${MAAS_DB_HOST}:${MAAS_DB_PORT}:${MAAS_DB}:${MAAS_DB_USER}:${MAAS_DB_PASSWORD}
-	${PCC_DB_HOST}:${PCC_DB_PORT}:${PCC_DB}:${PCC_DB_USER}:${PCC_DB_PASSWORD}
-	${PHONEHOME_DB_HOST}:${PHONEHOME_DB_PORT}:${PHONEHOME_DB}:${PHONEHOME_DB_USER}:${PHONEHOME_DB_PASSWORD}
-	${PLATINAEXECUTOR_DB_HOST}:${PLATINAEXECUTOR_DB_PORT}:${PLATINAEXECUTOR_DB}:${PLATINAEXECUTOR_DB_USER}:${PLATINAEXECUTOR_DB_PASSWORD}
-	${PLATINAMONITOR_DB_HOST}:${PLATINAMONITOR_DB_PORT}:${PLATINAMONITOR_DB}:${PLATINAMONITOR_DB_USER}:${PLATINAMONITOR_DB_PASSWORD}
-	${POSTGRES_DB_HOST}:${POSTGRES_DB_PORT}:${POSTGRES_DB}:${POSTGRES_DB_USER}:${POSTGRES_DB_PASSWORD}
-	${SECURITY_DB_HOST}:${SECURITY_DB_PORT}:${SECURITY_DB}:${SECURITY_DB_USER}:${SECURITY_DB_PASSWORD}
-	${USERMANAGEMENT_DB_HOST}:${USERMANAGEMENT_DB_PORT}:${USERMANAGEMENT_DB}:${USERMANAGEMENT_DB_USER}:${USERMANAGEMENT_DB_PASSWORD}
-EOF
-
-test -f ${PCCX_SECRET}/phone-home-storage.yml ||
-	create 0600 ${PCCX_SECRET}/phone-home-storage.yml cat <<-EOF
-	destinationHost: platinadownload.auctacognitio.com
-	destinationPort: 9001
-	destinationBucket: phone-home
-	accessKey: ${PHONEHOME_ACCESS_KEY}
-	secretKey: "${PHONEHOME_SECRET_KEY}"
-	dareKey: ""
-EOF
+create 0600 ${tsort} sort -u $passfn && mv ${tsort} $passfn

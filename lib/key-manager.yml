@@ -11,7 +11,7 @@ eureka:
 
 keystore:
   pwd: aucta2018
-  file: /home/keystore.jks
+  file: /var/lib/pccx/keystore.jks
   alias: aucta
   type: PKCS12
 

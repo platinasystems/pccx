@@ -1,0 +1,50 @@
+#!/bin/sh
+
+set -e
+
+. /run/secrets/env
+. /run/secrets/pccx
+. /usr/libexec/pccx/rc
+
+wait_for_postgres
+wait_for_url_pat "http://$KAFKA_ADV_HOST:8081" "{}"
+wait_for_url_pat "http://$APIREGISTRY_HOST:$APIREGISTRY_PORT" .
+
+service=${0##*/}
+combine_yaml /home/scripts/microservice/yaml-combiner \
+	/home/conf/default.yml \
+	/usr/lib/pccx/${service}.yml \
+	/var/lib/pccx/${service}.yml
+
+trace_if "$PLATINAEXECUTOR_TRACE_ENABLED"
+
+PGPASSWORD="$POSTGRES_PASSWORD" psql \
+        -U "$POSTGRES_USER" \
+        -h "$POSTGRES_HOST" \
+        -e "$POSTGRES_DB" \
+        -f /home/scripts/db/init.sql \
+        -v "role=$PLATINAEXECUTOR_DB_USER" \
+        -v "passwd=$PLATINAEXECUTOR_DB_PASSWORD" \
+        -v "db=$PLATINAEXECUTOR_DB" \
+        -v "dbschema=$PLATINAEXECUTOR_DB_SCHEMA"
+PGPASSWORD="$PLATINAEXECUTOR_DB_PASSWORD" psql \
+        -U "$PLATINAEXECUTOR_DB_USER" \
+        -h "$POSTGRES_HOST" \
+        -e "$PLATINAEXECUTOR_DB" \
+        -f /home/scripts/db/schema.sql
+
+debug_if "$PLATINAEXECUTOR_DEBUG_ENABLED" /home/platina-executor \
+	--overrideSystemProperties \
+	--configProfile docker \
+	--configUri "/var/lib/pccx/${service}.yml" \
+	--configBranch "$PLATINAEXECUTOR_CONFIG_BRANCH" \
+	--dbHost "$POSTGRES_HOST" \
+	--dbName "$PLATINAEXECUTOR_DB" \
+	--dbUsername "$PLATINAEXECUTOR_DB_USER" \
+	--dbPassword "$PLATINAEXECUTOR_DB_PASSWORD" \
+	--phAccessKey "$PHONEHOME_ACCESS_KEY" \
+	--phSecretKey "$PHONEHOME_SECRET_KEY" \
+	--useHostnameAsAddress \
+	--useHostnameAsName \
+	--registryAddress "$APIREGISTRY_HOST" \
+	--maxRegistrationRetry 5

@@ -162,7 +162,7 @@ monitor:
       sample: 30
   parquet:
     poolSize: 10
-    path: /home/parquetdb
+    path: /var/lib/pccx/parquetdb
     onlyRead: false
     defaultConsumer:
       period: 120

@@ -1,0 +1,26 @@
+#!/bin/sh
+
+set -e
+
+. /run/secrets/env
+. /run/secrets/pccx
+. /usr/libexec/pccx/rc
+
+service=${0##*/}
+combine_yaml /home/scripts/microservice/yaml-combiner \
+	/home/conf/default.yml \
+	/usr/lib/pccx/${service}.yml \
+	/var/lib/pccx/${service}.yml
+
+trace_if "$MAILER_TRACE_ENABLED"
+
+debug_if "$MAILER_DEBUG_ENABLED" /home/go-microservice-mailer \
+	--configProfile docker \
+	--configUri "/var/lib/pccx/${service}.yml" \
+	--configBranch "$MAILER_CONFIG_BRANCH" \
+	--phAccessKey "$PHONEHOME_ACCESS_KEY" \
+	--phSecretKey "$PHONEHOME_SECRET_KEY" \
+	--useHostnameAsAddress \
+	--useHostnameAsName \
+	--registryAddress "$APIREGISTRY_HOST" \
+	--maxRegistrationRetry 5

@@ -1,0 +1,40 @@
+#!/bin/sh
+
+set -eo pipefail
+
+. /run/secrets/env
+. /run/secrets/pccx
+. /usr/libexec/pccx/rc
+
+wait_for_host_port $POSTGRES_HOST $POSTGRES_PORT
+wait_for_host_port $MONITOR_HOST $MONITOR_PORT
+wait_for_host_port $PCCSERVER_HOST $PCCSERVER_PORT
+wait_for_host_port $MAAS_HOST $MAAS_PORT
+wait_for_host_port $KEYMANAGER_HOST $KEYMANAGER_PORT
+wait_for_host_port $SECURITY_HOST $SECURITY_PORT
+wait_for_host_port $USERMANAGEMENT_HOST $USERMANAGEMENT_PORT
+wait_for_host_port $PLATINAMONITOR_HOST $PLATINAMONITOR_PORT
+
+service=${0##*/}
+combine_yaml /home/scripts/microservice/yaml-combiner-alpine \
+	/home/conf/default.yml \
+	/usr/lib/pccx/${service}.yml \
+	/var/lib/pccx/${service}.yml
+
+trace_if "$GATEWAY_TRACE_ENABLED"
+
+# FIXME integrate this...
+/home/scripts/keystoreHandler.sh -t spring-gateway*.jar -p $GATEWAY_KEYSTORE_PASSWORD
+
+debug_if "$GATEWAY_DEBUG_ENABLED" java \
+	-D"spring.cloud.config.discovery.enabled=false" \
+	-D"spring.cloud.gateway.httpclient.websocket.max-frame-payload-length=6553600" \
+	-D"spring.cloud.config.override-system-properties=false" \
+	-D"spring.profiles.active=docker" \
+	-D"spring.cloud.config.failFast=false" \
+	-D"spring.config.location=/var/lib/pccx/${service}.yml" \
+	-D"eureka.client.service-url.defaultZone=$APIREGISTRY_URI" \
+	-D"server.ssl.key-store-password=$GATEWAY_KEYSTORE_PASSWORD" \
+	-D"spring.cloud.config.label=$GATEWAY_CONFIG_BRANCH" \
+	-D"server.ssl.keyStoreType=pkcs12" \
+	-jar spring-gateway*.jar

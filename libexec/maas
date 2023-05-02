@@ -1,0 +1,52 @@
+#!/bin/sh
+
+set -e
+
+. /run/secrets/env
+. /run/secrets/pccx
+. /usr/libexec/pccx/rc
+
+wait_for_postgres
+
+service=${0##*/}
+combine_yaml /home/scripts/microservice/yaml-combiner \
+	/home/conf/default.yml \
+	/usr/lib/pccx/${service}.yml \
+	/var/lib/pccx/${service}.yml
+
+trace_if "$MAAS_TRACE_ENABLED"
+
+# FIXME integrate this
+/usr/bin/swagger.sh
+
+PGPASSWORD="$POSTGRES_PASSWORD" psql \
+        -U "$POSTGRES_USER" \
+        -h "$POSTGRES_HOST" \
+        -e "$POSTGRES_DB" \
+        -f /home/scripts/db/init.sql \
+        -v "role=$MAAS_DB_USER" \
+        -v "passwd=$MAAS_DB_PASSWORD" \
+        -v "db=$MAAS_DB" \
+        -v "dbschema=$MAAS_DB_SCHEMA"
+PGPASSWORD="$MAAS_DB_PASSWORD" psql \
+        -U "$MAAS_DB_USER" \
+        -h "$POSTGRES_HOST" \
+        -e "$MAAS_DB" \
+        -f /home/scripts/db/schema.sql
+
+debug_if "$MAAS_DEBUG_ENABLED" /home/maas \
+	--overrideSystemProperties \
+	--configProfile docker \
+	--configUri "/var/lib/pccx/${service}.yml" \
+	--configBranch "$MAAS_CONFIG_BRANCH" \
+	--dbHost "$POSTGRES_HOST" \
+	--dbName "$MAAS_DB" \
+	--dbUsername "$MAAS_DB_USER" \
+	--dbPassword "$MAAS_DB_PASSWORD" \
+	--phAccessKey "$PHONEHOME_ACCESS_KEY" \
+	--phSecretKey "$PHONEHOME_SECRET_KEY" \
+	--useHostnameAsAddress \
+	--useHostnameAsName \
+	--registryAddress "$APIREGISTRY_HOST" \
+	--maxRegistrationRetry 5 \
+	--orchestrationGitPath=/home/orchestration

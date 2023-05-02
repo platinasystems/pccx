@@ -1,0 +1,68 @@
+#!/bin/sh
+
+set -e
+
+. /run/secrets/env
+. /run/secrets/pccx
+. /usr/libexec/pccx/rc
+
+minio_export
+
+wait_for_postgres
+wait_for_url_pat "http://$APIREGISTRY_HOST:$APIREGISTRY_PORT" .
+wait_for_url_pat "http://$MINIO_HOST:$MINIO_PORT" "Access Denied"
+wait_for_url_pat "http://$KAFKA_ADV_HOST:8081" "{}"
+wait_for_host_port $PLATINAEXECUTOR_HOST $PLATINAEXECUTOR_PORT
+wait_for_host_port $MAAS_HOST $MAAS_PORT
+
+trace_if "$PCC_TRACE_ENABLED"
+
+service=${0##*/}
+combine_yaml /home/scripts/microservice/yaml-combiner \
+	/home/conf/default.yml \
+	/usr/lib/pccx/${service}.yml \
+	/var/lib/pccx/${service}.yml
+
+rsync -rt /home/new_ansible/ /home/ansible/
+rsync -rt /home/new_orchestration/ /home/orchestration/
+rsync -rt /home/new_kubespray/ /home/kubespray/
+
+test -z "$PCCUI_HOST_IP" -o "$PCCUI_HOST_IP" = "0.0.0.0" ||
+        sed -i "s/localhost/${PCCUI_HOST_IP}/g" /home/swagger/swagger.json
+
+PGPASSWORD="$POSTGRES_PASSWORD" psql \
+        -U "$POSTGRES_USER" \
+        -h "$POSTGRES_HOST" \
+        -e "$POSTGRES_DB" \
+        -f /home/scripts/db/init.sql \
+        -v "role=$PCC_DB_USER" \
+        -v "passwd=$PCC_DB_PASSWORD" \
+        -v "db=$PCC_DB" \
+        -v "dbschema=$PCC_DB_SCHEMA"
+PGPASSWORD="$PCC_DB_PASSWORD" psql \
+        -U "$PCC_DB_USER" \
+        -h "$POSTGRES_HOST" \
+        -e "$PCC_DB" \
+        -f /home/scripts/db/schema.sql
+PGPASSWORD="$POSTGRES_PASSWORD" psql \
+        -U "$POSTGRES_USER" \
+        -h "$POSTGRES_HOST" \
+        -e "$PCC_DB" \
+        -f /home/scripts/db/post-init.sql
+
+debug_if "$PCC_DEBUG_ENABLED" /home/pccserver \
+        --overrideSystemProperties \
+        --configProfile docker \
+        --dbHost "$POSTGRES_HOST" \
+        --dbName "$PCC_DB" \
+        --dbUsername "$PCC_DB_USER" \
+        --dbPassword "$PCC_DB_PASSWORD" \
+        --configUri /var/lib/pccx/${service}.yml \
+        --phAccessKey "$PHONEHOME_ACCESS_KEY" \
+        --phSecretKey "$PHONEHOME_SECRET_KEY" \
+        --useHostnameAsAddress \
+        --useHostnameAsName \
+        --registryAddress registry \
+        --maxRegistrationRetry 5 \
+        --publicAddress "$PCC_HOST_IP" \
+        --configBranch "$PCC_CONFIG_BRANCH"

@@ -1,0 +1,28 @@
+#!/bin/sh
+
+set -eo pipefail
+
+. /run/secrets/env
+. /run/secrets/pccx
+. /usr/libexec/pccx/rc
+
+wait_for_host_port $POSTGRES_HOST $POSTGRES_PORT
+
+service=${0##*/}
+combine_yaml /home/scripts/microservice/yaml-combiner-alpine \
+	/home/conf/default.yml \
+	/usr/lib/pccx/${service}.yml \
+	/var/lib/pccx/${service}.yml
+
+trace_if "$APIREGISTRY_TRACE_ENABLED"
+
+/usr/libexec/pccx/eureka-client &
+
+sleep 3
+
+java -jar \
+	--add-opens "java.base/java.util=ALL-UNNAMED" \
+	--add-opens "java.base/java.lang.reflect=ALL-UNNAMED" \
+	--add-opens "java.base/java.text=ALL-UNNAMED" \
+	--add-opens "java.desktop/java.awt.font=ALL-UNNAMED" \
+	/home/registry-1.2-SNAPSHOT.jar

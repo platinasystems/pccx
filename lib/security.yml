@@ -5,7 +5,6 @@ server:
     include-message: always
 
 spring:
-  profiles: docker
   jpa:
     hibernate:
       ddl-auto: validate
@@ -19,6 +18,9 @@ spring:
     driver-class-name: org.postgresql.Driver
   application:
     name: security
+  config:
+    active:
+      on-profile: docker
 
 eureka:
   client:

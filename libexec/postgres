@@ -2,11 +2,25 @@
 set -Eeo pipefail
 # TODO swap to -Eeuo pipefail above (after handling all potentially-unset variables)
 
-# Set permission to mapped folders
+. /run/secrets/env
+. /run/secrets/pccx
+. /usr/libexec/pccx/rc
+
+trace_if "$POSTGRES_TRACE_ENABLED"
+
+: ${PGDATA:=/var/lib/postgresql/data}
+
+mkdir -p \
+	/var/lib/postgresql/data \
+	/var/lib/postgresql/wals \
+	/var/lib/postgresql/backup \
+	/var/lib/postgresql/logs
+
 chown -R postgres:postgres \
-/var/lib/postgresql/wals \
-/var/lib/postgresql/backup \
-/var/lib/postgresql/logs
+	/var/lib/postgresql/data \
+	/var/lib/postgresql/wals \
+	/var/lib/postgresql/backup \
+	/var/lib/postgresql/logs
 
 # usage: file_env VAR [DEFAULT]
 #    ie: file_env 'XYZ_DB_PASSWORD' 'example'

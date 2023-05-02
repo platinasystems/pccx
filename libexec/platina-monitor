@@ -1,0 +1,59 @@
+#!/bin/sh
+
+set -e
+
+. /run/secrets/env
+. /run/secrets/pccx
+. /usr/libexec/pccx/rc
+
+: ${PROMETHUS_URI:=http://$PROMETHEUS_HOST:$PROMETHEUS_PORT/api/v1/targets}
+: ${PUSHGATEWAY_URI:=http://$PUSHGATEWAY_HOST:$PUSHGATEWAY_PORT/api/v1/status}
+
+wait_for_postgres
+wait_for_url_pat "http://$APIREGISTRY_HOST:$APIREGISTRY_PORT" .
+wait_for_url_pat "$PROMETHUS_URI" status
+wait_for_url_pat "$PUSHGATEWAY_URI" status
+
+service=${0##*/}
+combine_yaml /home/scripts/microservice/yaml-combiner \
+	/home/conf/default.yml \
+	/usr/lib/pccx/${service}.yml \
+	/var/lib/pccx/${service}.yml
+
+trace_if "$PLATINAMONITOR_TRACE_ENABLED"
+
+PGPASSWORD="$POSTGRES_PASSWORD" psql \
+        -U "$POSTGRES_USER" \
+        -h "$POSTGRES_HOST" \
+        -e "$POSTGRES_DB" \
+        -f /home/scripts/db/init.sql \
+        -v "role=$PLATINAMONITOR_DB_USER" \
+        -v "passwd=$PLATINAMONITOR_DB_PASSWORD" \
+        -v "db=$PLATINAMONITOR_DB" \
+        -v "dbschema=$PLATINAMONITOR_DB_SCHEMA"
+PGPASSWORD="$PLATINAMONITOR_DB_PASSWORD" psql \
+        -U "$PLATINAMONITOR_DB_USER" \
+        -h "$POSTGRES_HOST" \
+        -e "$PLATINAMONITOR_DB" \
+        -f /home/scripts/db/schema.sql
+PGPASSWORD="$POSTGRES_PASSWORD" psql \
+        -U "$POSTGRES_USER" \
+        -h "$POSTGRES_HOST" \
+        -e "$PLATINAMONITOR_DB" \
+        -f /home/scripts/db/post-init.sql
+
+debug_if "$PLATINAMONITOR_DEBUG_ENABLED" /home/platina-monitor \
+	--overrideSystemProperties \
+	--configProfile docker \
+	--configUri "/var/lib/pccx/${service}.yml" \
+	--configBranch "$PLATINAMONITOR_CONFIG_BRANCH" \
+	--dbHost "$POSTGRES_HOST" \
+	--dbName "$PLATINAMONITOR_DB" \
+	--dbUsername "$PLATINAMONITOR_DB_USER" \
+	--dbPassword "$PLATINAMONITOR_DB_PASSWORD" \
+	--phAccessKey "$PHONEHOME_ACCESS_KEY" \
+	--phSecretKey "$PHONEHOME_SECRET_KEY" \
+	--useHostnameAsAddress \
+	--useHostnameAsName \
+	--registryAddress "$APIREGISTRY_HOST" \
+	--maxRegistrationRetry 5

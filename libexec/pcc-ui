@@ -1,0 +1,25 @@
+#!/bin/sh
+
+set -e
+
+. /run/secrets/env
+. /run/secrets/pccx
+. /usr/libexec/pccx/rc
+
+wait_for_host_port $GATEWAY_HOST $GATEWAY_PORT
+
+trace_if "$PCCUI_TRACE_ENABLED"
+
+/usr/local/apache2/scripts/microservice/app-launcher \
+	--overrideSystemProperties \
+	--configProfile docker \
+	--nodePort 80 \
+	--appName gui \
+	--configUri /usr/local/apache2/conf/application.yml \
+	--useHostnameAsAddress \
+	--useHostnameAsName \
+	--registryAddress $APIREGISTRY_HOST \
+	--maxRegistrationRetry 5 \
+	--publicAddress "$PCCUI_HOST_IP" \
+	--configBranch "$PCCUI_CONFIG_BRANCH" \
+	--command httpd-foreground

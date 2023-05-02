@@ -1,0 +1,59 @@
+#!/bin/sh
+
+set -e
+
+. /run/secrets/env
+. /run/secrets/pccx
+. /usr/libexec/pccx/rc
+
+minio_export
+
+wait_for_postgres
+wait_for_url_pat "http://$APIREGISTRY_HOST:$APIREGISTRY_PORT" .
+wait_for_url_pat "http://$MINIO_HOST:$MINIO_PORT" "Access Denied"
+
+trace_if "$PHONEHOME_TRACE_ENABLED"
+
+service=${0##*/}
+cp /usr/lib/pccx/${service}.yml /var/lib/pccx/${service}.yml
+
+# FIXME this modifies the container; instead, use /run/...
+mkdir -p /home/conf
+test -f /home/conf/storage.yml || create 0600 /home/conf/storage.yml cat <<-EOF
+	destinationHost: platinadownload.auctacognitio.com
+	destinationPort: 9001
+	destinationBucket: phone-home
+	accessKey: ${PHONEHOME_ACCESS_KEY}
+	secretKey: "${PHONEHOME_SECRET_KEY}"
+	dareKey: ""
+EOF
+
+PGPASSWORD="$POSTGRES_PASSWORD" psql \
+        -U "$POSTGRES_USER" \
+        -h "$POSTGRES_HOST" \
+        -e "$POSTGRES_DB" \
+        -f /home/scripts/db/init.sql \
+        -v "role=$PHONEHOME_DB_USER" \
+        -v "passwd=$PHONEHOME_DB_PASSWORD" \
+        -v "db=$PHONEHOME_DB" \
+        -v "dbschema=$PHONEHOME_DB_SCHEMA"
+PGPASSWORD="$PHONEHOME_DB_PASSWORD" psql \
+        -U "$PHONEHOME_DB_USER" \
+        -h "$POSTGRES_HOST" \
+        -e "$PHONEHOME_DB" \
+        -f /home/scripts/db/schema.sql
+
+debug_if "$PHONEHOME_DEBUG_ENABLED" /home/phone-home \
+	--overrideSystemProperties \
+	--configProfile docker \
+	--dbHost "$POSTGRES_HOST" \
+	--dbName "$PHONEHOME_DB" \
+	--dbUsername "$PHONEHOME_DB_USER" \
+	--dbPassword "$PHONEHOME_DB_PASSWORD" \
+	--configUri "/var/lib/pccx/${service}.yml" \
+	--customer "$PHONEHOME_CUSTOMER" \
+	--services "platina-monitor,key-manager,monitor,registry,maas,node-exporter,mailer,user-management,platina-executor,cadvisor,gateway,pccserver,security" \
+	--useHostnameAsAddress \
+	--useHostnameAsName \
+	--registryAddress registry \
+	--maxRegistrationRetry 5

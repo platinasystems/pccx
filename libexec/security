@@ -1,0 +1,66 @@
+#!/bin/sh
+
+set -e
+
+. /run/secrets/env
+. /usr/libexec/pccx/rc
+. /usr/libexec/pccx/rc
+
+wait_for_postgres
+wait_for_host_port $APIREGISTRY_HOST $APIREGISTRY_PORT
+wait_for_host_port $PCCSERVER_HOST $PCCSERVER_PORT
+
+trace_if "$SECURITY_TRACE_ENABLED"
+
+service=${0##*/}
+combine_yaml /home/scripts/microservice/yaml-combiner-alpine \
+	/home/conf/default.yml \
+	/usr/lib/pccx/${service}.yml \
+	/var/lib/pccx/${service}.yml
+
+SECURITY_ADMIN_PASSWD_HASH=$(java -cp security-jwt-*.jar \
+	-Dloader.main=com.auctacognitio.security.key.KeyGeneratorTool \
+	org.springframework.boot.loader.PropertiesLauncher \
+	$SECURITY_ADMIN_PASSWORD)
+
+PGPASSWORD=$POSTGRES_PASSWORD psql \
+        -U "$POSTGRES_USER" \
+        -h "$POSTGRES_HOST" \
+        -e "$POSTGRES_DB" \
+        -f /home/scripts/db/init.sql \
+        -v "role=$SECURITY_DB_USER" \
+        -v "passwd=$SECURITY_DB_PASSWORD" \
+        -v "db=$SECURITY_DB" \
+        -v "dbschema=$SECURITY_DB_SCHEMA"
+PGPASSWORD="$SECURITY_DB_PASSWORD" psql \
+        -U "$SECURITY_DB_USER" \
+        -h "$POSTGRES_HOST" \
+        -e "$SECURITY_DB" \
+        -f /home/scripts/db/schema.sql
+PGPASSWORD="$POSTGRES_PASSWORD" psql \
+        -U "$POSTGRES_USER" \
+        -h "$POSTGRES_HOST" \
+        -e "$SECURITY_DB" \
+	-v "pccdb=$PCC_DB" \
+	-v "pccdbHost=$PCC_DB_HOST" \
+	-v "pccdbPort=$PCC_DB_PORT" \
+	-v "pccdbUser=$PCC_DB_USER" \
+	-v "pccdbPassword=$PCC_DB_PASSWORD" \
+	-v "foreignSchema=$SECURITY_FOREIGN_SCHEMA" \
+	-v "foreignTables=$SECURITY_FOREIGN_TABLES" \
+	-v "dbUser=$SECURITY_DB_USER" \
+	-v "adminUser=$POSTGRES_USER" \
+	-v "platinamonitorDbUser=$PLATINAMONITOR_DB_USER" \
+	-v "platinamonitorDbPassword=$PLATINAMONITOR_DB_PASSWORD" \
+	-v "serverAdminHash=$SECURITY_ADMIN_PASSWD_HASH" \
+        -f /home/scripts/db/post-init.sql
+
+debug_if "$SECURITY_DEBUG_ENABLED" java \
+	-D"eureka.client.service-url.defaultZone=$APIREGISTRY_URI" \
+	-D"spring.cloud.config.failFast=false" \
+	-D"spring.config.location=/var/lib/pccx/${service}.yml" \
+	-D"spring.datasource.password=$SECURITY_DB_PASSWORD" \
+	-D"spring.datasource.url=jdbc:postgresql://$POSTGRES_HOST/$SECURITY_DB" \
+	-D"spring.datasource.username=$SECURITY_DB_USER" \
+	-D"spring.profiles.active=docker" \
+	-jar security-jwt-*.jar

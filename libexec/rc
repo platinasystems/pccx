@@ -1,0 +1,295 @@
+#!/bin/sh
+
+: ${LOGDIR:=/home/logs}
+
+exec >$LOGDIR/init.log 2>&1
+
+test ! -d /home || cd /home
+
+: ${GATEWAY_KEYSTORE_PASSWORD:?null}
+: ${KAFKA_PASSWORD:?null}
+: ${KEYMANAGER_DB_PASSWORD:?null}
+: ${MAAS_DB_PASSWORD:?null}
+: ${MAILER_PASSWORD:?null}
+: ${PCC_DB_PASSWORD:?null}
+: ${PHONEHOME_DB_PASSWORD:?null}
+: ${PHONEHOME_SECRET_KEY:?null}
+: ${PLATINAEXECUTOR_DB_PASSWORD:?null}
+: ${PLATINAMONITOR_DB_PASSWORD:?null}
+: ${POSTGRES_DB_PASSWORD:?null}
+: ${SECURITY_ADMIN_PASSWORD:?null}
+: ${SECURITY_ADMIN_PASSWORD:?null}
+: ${SECURITY_DB_PASSWORD:?null}
+: ${USERMANAGEMENT_DB_PASSWORD:?null}
+
+: ${ADMINER_HOST:=adminer}
+: ${ALERTMANAGER_HOST:=alertmanager}
+: ${APIREGISTRY_HOST:=api-registry}
+: ${CADVISOR_HOST:=cadvisor}
+: ${GATEWAY_HOST:=gateway}
+: ${KAFKA_ADV_HOST:=kafka}
+: ${KEYMANAGER_HOST:=key-manager}
+: ${MAAS_HOST:=maas}
+: ${MAILER_HOST:=mailer}
+: ${MINIO_HOST:=minio}
+: ${MONITOR_HOST:=monitor}
+: ${NODE_EXPORTER_HOST:=node-exporter}
+: ${PCCSERVER_HOST:=pccserver}
+: ${PCCUI_HOST:=pcc-ui}
+: ${PHONEHOME_HOST:=phone-home}
+: ${PLATINAEXECUTOR_HOST:=platina-executor}
+: ${PLATINAMONITOR_HOST:=platina-monitor}
+: ${POSTGRES_HOST:=postgres}
+: ${PROMETHEUS_HOST:=prometheus}
+: ${PUSHGATEWAY_HOST:=pushgateway}
+: ${REDIS_HOST:=redis}
+: ${SECURITY_HOST:=security}
+: ${USERMANAGEMENT_HOST:=user-management}
+
+: ${ADMINER_PORT:=8080}
+: ${ALERTMANAGER_PORT:=9093}
+: ${APIREGISTRY_PORT:=8761}
+: ${CADVISOR_PORT:=8080}
+: ${GATEWAY_PORT:=9999}
+: ${KEYMANAGER_PORT:=8084}
+: ${MAAS_PORT:=5980}
+: ${MAILER_PORT:=8787}
+: ${MINIO_PORT:=9000}
+: ${MINIO_CONSOLE_PORT:=9001}
+: ${MONITOR_PORT:=9191}
+: ${NODE_EXPORTER_PORT:=9100}
+: ${PCCSERVER_PORT:=8989}
+: ${PCCUI_PORT:=443}
+: ${PLATINAEXECUTOR_PORT:=8998}
+: ${PLATINAMONITOR_PORT:=8995}
+: ${POSTGRES_PORT:=5432}
+: ${PROMETHEUS_PORT:=9090}
+: ${PUSHGATEWAY_PORT:=9091}
+: ${REDIS_PORT:=6379}
+: ${SECURITY_PORT:=8082}
+: ${USERMANAGEMENT_PORT:=8083}
+
+: ${APIREGISTRY_URI:=http://${APIREGISTRY_HOST}:${APIREGISTRY_PORT}/eureka}
+
+: ${PGDATA:=/var/lib/postgresql/data}
+
+: ${KEYMANAGER_DB:=key_manager}
+: ${MAAS_DB:=maas}
+: ${PCC_DB:=pccdb}
+: ${PHONEHOME_DB:=phone_home}
+: ${PLATINAEXECUTOR_DB:=executordb}
+: ${PLATINAMONITOR_DB:=platina_monitor}
+: ${POSTGRES_DB:=postgres}
+: ${SECURITY_DB:=jwt}
+: ${USERMANAGEMENT_DB:=jwt}
+
+: ${KEYMANAGER_DB_HOST:=${POSTGRES_HOST}}
+: ${MAAS_DB_HOST:=${POSTGRES_HOST}}
+: ${PCC_DB_HOST:=${POSTGRES_HOST}}
+: ${PHONEHOME_DB_HOST:=${POSTGRES_HOST}}
+: ${PLATINAEXECUTOR_DB_HOST:=${POSTGRES_HOST}}
+: ${PLATINAMONITOR_DB_HOST:=${POSTGRES_HOST}}
+: ${POSTGRES_DB_HOST:=${POSTGRES_HOST}}
+: ${SECURITY_DB_HOST:=${POSTGRES_HOST}}
+: ${USERMANAGEMENT_DB_HOST:=${POSTGRES_HOST}}
+
+: ${KEYMANAGER_DB_PORT:=${POSTGRES_PORT}}
+: ${MAAS_DB_PORT:=${POSTGRES_PORT}}
+: ${PCC_DB_PORT:=${POSTGRES_PORT}}
+: ${PHONEHOME_DB_PORT:=${POSTGRES_PORT}}
+: ${PLATINAEXECUTOR_DB_PORT:=${POSTGRES_PORT}}
+: ${PLATINAMONITOR_DB_PORT:=${POSTGRES_PORT}}
+: ${POSTGRES_DB_PORT:=${POSTGRES_PORT}}
+: ${SECURITY_DB_PORT:=${POSTGRES_PORT}}
+: ${USERMANAGEMENT_DB_PORT:=${POSTGRES_PORT}}
+
+: ${KEYMANAGER_DB_USER:=jwtuser}
+: ${MAAS_DB_USER:=pcc}
+: ${PCC_DB_USER:=pcc}
+: ${PHONEHOME_DB_USER:=phuser}
+: ${PLATINAEXECUTOR_DB_USER:=executor}
+: ${PLATINAMONITOR_DB_USER:=monitor}
+: ${POSTGRES_DB_USER:=postgres}
+: ${SECURITY_DB_USER:=jwtuser}
+: ${USERMANAGEMENT_DB_USER:=jwtuser}
+
+: ${APIREGISTRY_TRACE_ENABLED:=false}
+: ${GATEWAY_TRACE_ENABLED:=false}
+: ${KEYMANAGER_TRACE_ENABLED:=false}
+: ${MAAS_TRACE_ENABLED:=false}
+: ${MAILER_TRACE_ENABLED:=false}
+: ${MINIO_TRACE_ENABLED:=false}
+: ${MONITOR_TRACE_ENABLED:=false}
+: ${PCC_TRACE_ENABLED:=false}
+: ${PCCUI_TRACE_ENABLED:=false}
+: ${PHONEHOME_TRACE_ENABLED:=false}
+: ${PLATINAEXECUTOR_TRACE_ENABLED:=false}
+: ${PLATINAMONITOR_TRACE_ENABLED:=false}
+: ${SECURITY_TRACE_ENABLED:=false}
+: ${USERMANAGEMENT_TRACE_ENABLED:=false}
+
+: ${APIREGISTRY_DEBUG_ENABLED:=false}
+: ${GATEWAY_DEBUG_ENABLED:=false}
+: ${KEYMANAGER_DEBUG_ENABLED:=false}
+: ${MAAS_DEBUG_ENABLED:=false}
+: ${MAILER_DEBUG_ENABLED:=false}
+: ${MONITOR_DEBUG_ENABLED:=false}
+: ${PCCUI_DEBUG_ENABLED:=false}
+: ${PCC_DEBUG_ENABLED:=false}
+: ${PHONEHOME_DEBUG_ENABLED:=false}
+: ${PLATINAEXECUTOR_DEBUG_ENABLED:=false}
+: ${PLATINAMONITOR_DEBUG_ENABLED:=false}
+: ${SECURITY_DEBUG_ENABLED:=false}
+: ${USERMANAGEMENT_DEBUG_ENABLED:=false}
+
+: ${GATEWAY_CONFIG_BRANCH:=master}
+: ${MAAS_CONFIG_BRANCH:=master}
+: ${MAILER_CONFIG_BRANCH:=master}
+: ${MONITOR_CONFIG_BRANCH:=master}
+: ${PCC_CONFIG_BRANCH:=master}
+: ${PCCUI_CONFIG_BRANCH:=master}
+: ${PLATINAEXECUTOR_CONFIG_BRANCH:=master}
+: ${PLATINAMONITOR_CONFIG_BRANCH:=master}
+
+: ${ANSIBLE_VERBOSITY:=0}
+
+: ${KAFKA_ITERATIONS:=180}
+: ${KAFKA_PERIOD_SECS:=3}
+
+: ${KEYMANAGER_ADMIN:=pcc}
+
+: ${MAILER_USER:=pcc_notifications@platinasystems.com}
+
+: ${MINIO_ROOT_USER:=minio}
+: ${MINIO_VOLUMES:=/var/lib/minio}
+: ${MINIO_PORT:=9000}
+: ${MINIO_ITERATIONS:=90}
+: ${MINIO_PERIOD_SECS:=3}
+
+: ${ORCHESTRATION_REPO_REFERENCE:=$MAAS_CONFIG_BRANCH}
+: ${ORCHESTRATION_REPO_USER_TOKEN:=empty}
+
+: ${PCC_HOST_IP:=0.0.0.0}
+: ${PCCUI_HOST_IP:=0.0.0.0}
+
+: ${PHONEHOME_ACCESS_KEY:=admin}
+: ${PHONEHOME_CUSTOMER:=PlatinaSystems}
+: ${PHONEHOME_PUBKEY_FILE:=./pubkey/platina.asc}
+
+: ${POSTGRES_USER:=postgres}
+
+: ${SECURITY_FOREIGN_SCHEMA:=pcc}
+: ${SECURITY_FOREIGN_TABLES:=nodes,roles,clusters,kclusters,portus_configurations,auth_profiles}
+
+: ${WAIT_PERIOD_SECS:=3}
+: ${PGCONNECT_TIMEOUT=$((${WAIT_PERIOD_SECS} * ${WAIT_ITERATIONS:-90}))}
+
+create() {
+	mode=${1:?missing mode} file=${2:?missing file} shift 2
+	touch ${file}
+	chmod ${mode} ${file}
+	if test $# -gt 0; then
+		>>${file} eval $@
+	fi
+}
+
+fatal() {
+	>&2 echo "$@"
+	exit 1
+}
+
+import() {
+	export $(sed -n '/^\w\+=/s/=.*//p' $@)
+}
+
+minio_export() {
+	export MINIO_ROOT_USER
+	export MINIO_ROOT_PASSWORD
+	export MINIO_VOLUMES
+	export MINIO_PORT
+	export MINIO_ITERATIONS
+	export MINIO_PERIOD_SECS
+}
+
+wait_for_url_pat() {
+	url=${1:?missing wait url} pat=${2:?missing wait pattern} shift 2
+	start=$(date +%s)
+	until curl --connect-timeout $PGCONNECT_TIMEOUT -s $url | grep -q "$pat"
+	do
+		secs=$(($(date +%s) - start))
+		test $secs -lt $PGCONNECT_TIMEOUT ||
+			fatal $url: timeout at $secs seconds
+		sleep ${WAIT_PERIOD_SECS}
+	done
+	echo $url: available
+}
+
+wait_for_host_port() {
+	host=${1:?missing wait host} port=${2:?missing wait port} shift 2
+	start=$(date +%s)
+	until nc -zw3 $host $port; do
+		secs=$(($(date +%s) - start))
+		test $secs -lt $PGCONNECT_TIMEOUT ||
+			fatal $host:$port: timeout at $secs seconds
+		sleep ${WAIT_PERIOD_SECS}
+	done
+	echo $host:$port: available
+}
+
+wait_for_postgres() {
+	host=${POSTGRES_HOST:?null}
+	port=${POSTGRES_PORT:?null}
+	user=${POSTGRES_USER:?null}
+	pass=${POSTGRES_PASSWORD:?null}
+	start=$(date +%s)
+	until (PGPASSWORD="$pass" \
+		PGCONNECT_TIMEOUT=$PGCONNECT_TIMEOUT \
+		psql -h $host -p $port -U $user -c "select 1" >/dev/null 2>&1)
+	do
+		secs=$(($(date +%s) - start))
+		test $secs -lt $PGCONNECT_TIMEOUT ||
+			fatal $host:$port: timeout at $secs seconds
+		sleep ${WAIT_PERIOD_SECS}
+	done
+	echo $host:$port: available
+}
+
+combine_yaml() {
+	combiner=${1:?missing combiner}
+	image_config=${2:?missing image config}
+	pccx_config=${3:?missing pccx config}
+	output=${4:?missing output}
+	test ! -r $output || return 0
+	input=${output}~
+	cp $pccx_config $output
+	sed '/^\s\+profiles: docker$/d' $image_config > $input
+	eval $combiner --log-path ${LOGDIR}/combination.log \
+		--default-conf $input --current-conf $output --output $output ||
+		fatal failed to merge $output
+}
+
+trace_if() {
+	test "${1:-false}" != "true" || set -x
+}
+
+debug_if() {
+	dflag=${1:?missing debug flag} prog=${2:?missing program} shift 2
+	: ${DEBUG_PORT:=2346}
+	if test "$dflag" != "true"; then
+		if test ${prog} = "java"; then
+			2>$LOGDIR/stderr.log >$LOGDIR/stdout.log \
+			java ${JAVA_OPTS}${JAVA_OPTS:+ }$*
+		else
+			2>$LOGDIR/stderr.log >$LOGDIR/stdout.log \
+			$prog $*
+		fi
+	elif test ${prog} = "java"; then
+		2>$LOGDIR/stderr.log >$LOGDIR/stdout.log \
+		java ${JAVA_OPTS}${JAVA_OPTS:+ }"-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=${DEBUG_PORT}" $*
+	else
+		dlv --listen=:$DEBUG_PORT --headless=true --api-version=2 \
+			-r stderr:$LOGDIR/stderr.log \
+			-r stdout:$LOGDIR/stdout.log \
+			exec $prog -- $*
+	fi
+}

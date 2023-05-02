@@ -1,0 +1,62 @@
+#!/bin/sh
+
+set -e
+
+. /run/secrets/env
+. /run/secrets/pccx
+. /usr/libexec/pccx/rc
+
+wait_for_postgres
+wait_for_host_port $APIREGISTRY_HOST $APIREGISTRY_PORT
+wait_for_host_port ${PCCSERVER_HOST} ${PCCSERVER_PORT}
+
+trace_if "$KEYMANAGER_TRACE_ENABLED"
+
+service=${0##*/}
+combine_yaml /home/scripts/microservice/yaml-combiner-alpine \
+	/home/conf/default.yml \
+	/usr/lib/pccx/${service}.yml \
+	/var/lib/pccx/${service}.yml
+
+# FIXME integrate this...
+/home/scripts/microservice/initConfGenerator.sh -o conf/adminKey.yml \
+	-a "$KEYMANAGER_ADMIN"
+sleep 5
+
+PGPASSWORD="$POSTGRES_PASSWORD" psql \
+        -U "$POSTGRES_USER" \
+        -h "$POSTGRES_HOST" \
+        -e "$POSTGRES_DB" \
+        -f /home/scripts/db/init.sql \
+        -v "role=$KEYMANAGER_DB_USER" \
+        -v "passwd=$KEYMANAGER_DB_PASSWORD" \
+        -v "db=$KEYMANAGER_DB" \
+        -v "dbschema=$KEYMANAGER_DB_SCHEMA"
+PGPASSWORD="$KEYMANAGER_DB_PASSWORD" psql \
+        -U "$KEYMANAGER_DB_USER" \
+        -h "$POSTGRES_HOST" \
+        -e "$KEYMANAGER_DB" \
+        -f /home/scripts/db/schema.sql
+PGPASSWORD="$POSTGRES_PASSWORD" psql \
+        -U "$POSTGRES_USER" \
+        -h "$POSTGRES_HOST" \
+        -e "$KEYMANAGER_DB" \
+	-v "pccdb=$PCC_DB" \
+	-v "pccdbHost=$POSTGRES_HOST" \
+	-v "pccdbPort=$POSTGRES_PORT" \
+	-v "pccdbUser=$PCC_DB_USER" \
+	-v "pccdbPassword=$PCC_DB_PASSWORD" \
+	-v "dbUser=$KEYMANAGER_DB_USER" \
+	-v "adminUser=$POSTGRES_USER" \
+        -f /home/scripts/db/post-init.sql
+
+debug_if "$KEYMANAGER_DEBUG_ENABLED" java \
+	-D"spring.profiles.active=docker" \
+	-D"spring.datasource.url=jdbc:postgresql://$POSTGRES_HOST/$KEYMANAGER_DB" \
+	-D"spring.datasource.username=$KEYMANAGER_DB_USER" \
+	-D"spring.datasource.password=$KEYMANAGER_DB_PASSWORD" \
+	-D"spring.cloud.config.failFast=false" \
+	-D"eureka.client.service-url.defaultZone=$APIREGISTRY_URI" \
+	-D"spring.config.location=/var/lib/pccx/${service}.yml" \
+	-D"keystore.file=/var/lib/pccx/keystore.jks" \
+	-jar key-manager-*.jar

@@ -1,0 +1,110 @@
+#!/usr/bin/python3
+
+import requests
+import yaml
+import time
+import sys
+import threading
+import signal
+import sys
+
+
+DEFAULT_TIMEOUT = 10
+
+
+def build_request(app_name, ip_addr, port):
+    url = 'http://registry:8761/eureka/apps/' + app_name.upper()
+
+    headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
+
+    params = dict()
+    params["hostName"] = ip_addr
+    params["app"] = app_name.upper()
+    params["ipAddr"] = ip_addr
+    params["vipAddress"] = ip_addr
+    params["status"] = "UP"
+    params["port"] = {}
+    params["port"]["$"] = port
+    if port > 0:
+        params["port"]["@enabled"] = "true"
+    else:
+        params["port"]["@enabled"] = "false"
+
+    params["securePort"] = {}
+    params["securePort"]["@enabled"] = "false"
+    params["securePort"]["$"] = -1
+
+    params["homePageUrl"] = "http://" + app_name + ":" + str(port)
+    params["statusPageUrl"] = params["homePageUrl"] + "/info"
+    params["healthCheckUrl"] = params["homePageUrl"] + "/health"
+
+    params["dataCenterInfo"] = {"@class": "com.netflix.appinfo.InstanceInfo$DefaultDataCenterInfo", "name": "MyOwn"}
+    params["metadata"] = {"instanceId": app_name + ":" + app_name}
+
+    body = {"instance": params}
+
+    return url, headers, body
+
+
+def register(app_name, ip_addr, port):
+    print("Starting eureka client for " + app_name)
+    url, headers, body = build_request(app_name, ip_addr, port)
+    response = requests.post(url, json=body, headers=headers, timeout=DEFAULT_TIMEOUT)
+    if response.status_code != 204:
+        response.raise_for_status()
+
+
+def hearth_beat(app_name, ip_addr, port):
+    url, headers, body = build_request(app_name, ip_addr, port)
+    url = url + "/" + app_name + ":" + app_name
+    response = requests.put(url, json=body, headers=headers, timeout=DEFAULT_TIMEOUT)
+    response.raise_for_status()
+
+
+class EurekaThread (threading.Thread):
+    def __init__(self, name, address, port):
+        threading.Thread.__init__(self)
+        self.name = name
+        self.address = address
+        self.port = port
+        self.alive = True
+
+    def run(self):
+
+        while self.alive:
+            try:
+                register(self.name, self.address, self.port)
+                while self.alive:
+                    hearth_beat(self.name, self.address, self.port)
+                    time.sleep(30)
+
+            except Exception as e:
+                print(e)
+
+            time.sleep(30)
+
+
+def signal_handler(sig, frame, eureka_threads):
+    for et in eureka_threads:
+        et.alive = False
+    sys.exit(0)
+
+
+def main():
+    file_path = "/var/lib/pccx/api-registry.yml"
+    if len(sys.argv) > 1:
+        file_path = sys.argv[1]
+
+    with open(file_path, 'r') as stream:
+        services = yaml.load(stream, Loader=yaml.SafeLoader)
+
+        eureka_threads = []
+        for service in services['services']:
+            thread = EurekaThread(service['name'], service['address'], service['port'])
+            thread.start()
+            eureka_threads.append(thread)
+
+    signal.signal(signal.SIGINT, signal_handler)
+
+
+main()
