@@ -32,7 +32,7 @@ phone-home:
   proxyPassword: ''
   proxyHost: ''
   proxyPort: 8080
-  stage: /var/lib/pccx/data
+  stage: /var/lib/phone-home
   services:
   - pccserver
   - registry

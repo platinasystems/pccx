@@ -1,0 +1,50 @@
+.\" Manpage for pccx
+.\" Contact tgrennan@platinasystems.com to correct errors or typos.
+.TH PCCX 8 "20 May 2023"
+.SH NAME
+pccx \- Platina Command Center eXchange
+
+.SH SYNOPSIS
+.B pccx
+.I COMMAND
+.RI [ ARGUMENT ]...
+
+.SH DESCRIPTION
+Administer the Platina Command Center eXchange docker stack.
+
+.SH COMMANDS
+.TP
+.B compose
+Run
+.I docker-compose
+command with
+.I pccx
+configuration files.
+.TP
+.B configure
+Configure
+.I pccx
+files.
+.TP
+.B install
+Install this sourc4e to
+.I /usr/local
+or, if not super user,
+.IR $HOME/.local .
+.TP
+.B show files
+Print
+.I pccx
+file paths.
+
+.SH DEB MAINTAINERS
+.TP
+.B postinst
+.TP
+.B prerm
+
+.SH BUGS
+No known bugs.
+
+.SH AUTHOR
+Tom Grennan (tgrennan@platinasystems.com)

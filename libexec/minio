@@ -2,40 +2,39 @@
 
 set -e
 
-LOGDIR=/var/log
+. /usr/share/pccx/rc.sh
 
-. /run/secrets/env
-. /run/secrets/pccx
-. /usr/libexec/pccx/rc
+export MINIO_ROOT_USER
+export MINIO_ROOT_PASSWORD
+export MINIO_VOLUMES
+export MINIO_PORT
+export MINIO_ITERATIONS
+export MINIO_PERIOD_SECS
 
-minio_export
-
-trace_if "$MINIO_TRACE_ENABLED"
+pccx trace MINIO
 
 # If command starts with an option, prepend minio.
-if [ "${1}" != "minio" ]; then
-    if [ -n "${1}" ]; then
-        set -- minio "$@"
-    fi
-fi
+test "$1" = "minio" || set -- minio "$@"
 
 # su-exec to requested user, if service cannot run exec will fail.
 docker_switch_user() {
-    if [ -n "${MINIO_USERNAME}" ] && [ -n "${MINIO_GROUPNAME}" ]; then
-        if [ -n "${MINIO_UID}" ] && [ -n "${MINIO_GID}" ]; then
-            groupadd -f -g "$MINIO_GID" "$MINIO_GROUPNAME" && \
-                useradd -u "$MINIO_UID" -g "$MINIO_GROUPNAME" "$MINIO_USERNAME"
-        else
-            groupadd -f "$MINIO_GROUPNAME" && \
-                useradd -g "$MINIO_GROUPNAME" "$MINIO_USERNAME"
-        fi
-        exec >$LOGDIR/stderr.log 2>&1 >$LOGDIR/stdout.log setpriv \
-            --reuid="${MINIO_USERNAME}" \
-            --regid="${MINIO_GROUPNAME}" \
-            --keep-groups "$@"
-    else
-        exec >$LOGDIR/stderr.log 2>&1 >$LOGDIR/stdout.log "$@"
-    fi
+	if [ -n "${MINIO_USERNAME}" ] && [ -n "${MINIO_GROUPNAME}" ]; then
+		if [ -n "${MINIO_UID}" ] && [ -n "${MINIO_GID}" ]; then
+			groupadd -f -g "$MINIO_GID" "$MINIO_GROUPNAME" &&
+			useradd -u "$MINIO_UID" -g "$MINIO_GROUPNAME" \
+				"$MINIO_USERNAME"
+		else
+			groupadd -f "$MINIO_GROUPNAME" &&
+			useradd -g "$MINIO_GROUPNAME" "$MINIO_USERNAME"
+		fi
+		exec >/var/log/minio.log 2>&1 setpriv \
+			--reuid="${MINIO_USERNAME}" \
+			--regid="${MINIO_GROUPNAME}" \
+			--keep-groups \
+			"$@"
+	    else
+		exec >/var/log/minio.log 2>&1 "$@"
+	 fi
 }
 
 ## Switch to user if applicable.

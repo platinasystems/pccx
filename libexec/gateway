@@ -2,39 +2,38 @@
 
 set -eo pipefail
 
-. /run/secrets/env
-. /run/secrets/pccx
-. /usr/libexec/pccx/rc
+. /usr/share/pccx/rc.sh
 
-wait_for_host_port $POSTGRES_HOST $POSTGRES_PORT
-wait_for_host_port $MONITOR_HOST $MONITOR_PORT
-wait_for_host_port $PCCSERVER_HOST $PCCSERVER_PORT
-wait_for_host_port $MAAS_HOST $MAAS_PORT
-wait_for_host_port $KEYMANAGER_HOST $KEYMANAGER_PORT
-wait_for_host_port $SECURITY_HOST $SECURITY_PORT
-wait_for_host_port $USERMANAGEMENT_HOST $USERMANAGEMENT_PORT
-wait_for_host_port $PLATINAMONITOR_HOST $PLATINAMONITOR_PORT
+pccx wait service $HOST_POSTGRES $PORT_POSTGRES
+pccx wait service $HOST_MONITOR $PORT_MONITOR
+pccx wait service $HOST_PCCSERVER $PORT_PCCSERVER
+pccx wait service $HOST_MAAS $PORT_MAAS
+pccx wait service $HOST_KEYMANAGER $PORT_KEYMANAGER
+pccx wait service $HOST_SECURITY $PORT_SECURITY
+pccx wait service $HOST_USERMANAGEMENT $PORT_USERMANAGEMENT
+pccx wait service $HOST_PLATINAMONITOR $PORT_PLATINAMONITOR
 
-service=${0##*/}
-combine_yaml /home/scripts/microservice/yaml-combiner-alpine \
-	/home/conf/default.yml \
-	/usr/lib/pccx/${service}.yml \
-	/var/lib/pccx/${service}.yml
+pccx merge /home/scripts/microservice/yaml-combiner-alpine \
+	/home/conf/default.yml /usr/share/pccx/${0##*/}.yml /run/config.yml
 
-trace_if "$GATEWAY_TRACE_ENABLED"
+pccx trace GATEWAY
+
+mkdir -p /home/certs
+ln -sf /etc/pccx/cert.pem /home/certs/server.crt
+ln -sf /etc/pccx/key.pem /home/certs/server.key
 
 # FIXME integrate this...
 /home/scripts/keystoreHandler.sh -t spring-gateway*.jar -p $GATEWAY_KEYSTORE_PASSWORD
 
-debug_if "$GATEWAY_DEBUG_ENABLED" java \
+pccx exec GATEWAY java \
 	-D"spring.cloud.config.discovery.enabled=false" \
 	-D"spring.cloud.gateway.httpclient.websocket.max-frame-payload-length=6553600" \
 	-D"spring.cloud.config.override-system-properties=false" \
 	-D"spring.profiles.active=docker" \
 	-D"spring.cloud.config.failFast=false" \
-	-D"spring.config.location=/var/lib/pccx/${service}.yml" \
-	-D"eureka.client.service-url.defaultZone=$APIREGISTRY_URI" \
+	-D"spring.config.location=/run/config.yml" \
+	-D"eureka.client.service-url.defaultZone=$URI_EUREKA" \
 	-D"server.ssl.key-store-password=$GATEWAY_KEYSTORE_PASSWORD" \
-	-D"spring.cloud.config.label=$GATEWAY_CONFIG_BRANCH" \
+	-D"spring.cloud.config.label=$CONFIG_BRANCH_GATEWAY" \
 	-D"server.ssl.keyStoreType=pkcs12" \
 	-jar spring-gateway*.jar

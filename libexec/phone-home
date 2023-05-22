@@ -2,55 +2,58 @@
 
 set -e
 
-. /run/secrets/env
-. /run/secrets/pccx
-. /usr/libexec/pccx/rc
+. /usr/share/pccx/rc.sh
 
-minio_export
+export MINIO_ROOT_USER
+export MINIO_ROOT_PASSWORD
+export MINIO_VOLUMES
+export MINIO_PORT
+export MINIO_ITERATIONS
+export MINIO_PERIOD_SECS
 
-wait_for_postgres
-wait_for_url_pat "http://$APIREGISTRY_HOST:$APIREGISTRY_PORT" .
-wait_for_url_pat "http://$MINIO_HOST:$MINIO_PORT" "Access Denied"
+pccx wait postgres
+pccx wait url $URI_APIREGISTRY .
+pccx wait url $URI_MINIO "Access Denied"
 
-trace_if "$PHONEHOME_TRACE_ENABLED"
+pccx trace PHONEHOME
 
-service=${0##*/}
-cp /usr/lib/pccx/${service}.yml /var/lib/pccx/${service}.yml
+cp /usr/share/pccx/${0##*/}.yml /run/config.yml
 
 # FIXME this modifies the container; instead, use /run/...
 mkdir -p /home/conf
-test -f /home/conf/storage.yml || create 0600 /home/conf/storage.yml cat <<-EOF
+test -f /home/conf/storage.yml ||
+	pccx file create 0600 /home/conf/storage.yml cat <<-EOF
 	destinationHost: platinadownload.auctacognitio.com
 	destinationPort: 9001
 	destinationBucket: phone-home
 	accessKey: ${PHONEHOME_ACCESS_KEY}
 	secretKey: "${PHONEHOME_SECRET_KEY}"
 	dareKey: ""
-EOF
+	EOF
 
 PGPASSWORD="$POSTGRES_PASSWORD" psql \
         -U "$POSTGRES_USER" \
-        -h "$POSTGRES_HOST" \
-        -e "$POSTGRES_DB" \
+        -h "$HOST_POSTGRES" \
+        -e "$DB_NAME_POSTGRES" \
         -f /home/scripts/db/init.sql \
-        -v "role=$PHONEHOME_DB_USER" \
-        -v "passwd=$PHONEHOME_DB_PASSWORD" \
-        -v "db=$PHONEHOME_DB" \
-        -v "dbschema=$PHONEHOME_DB_SCHEMA"
-PGPASSWORD="$PHONEHOME_DB_PASSWORD" psql \
-        -U "$PHONEHOME_DB_USER" \
-        -h "$POSTGRES_HOST" \
-        -e "$PHONEHOME_DB" \
+        -v "role=$DB_USER_PHONEHOME" \
+        -v "passwd=$DB_PASSWORD_PHONEHOME" \
+        -v "db=$DB_NAME_PHONEHOME" \
+        -v "dbschema=$DB_SCHEMA_PHONEHOME"
+PGPASSWORD="$DB_PASSWORD_PHONEHOME" psql \
+        -U "$DB_USER_PHONEHOME" \
+        -h "$HOST_POSTGRES" \
+        -e "$DB_NAME_PHONEHOME" \
         -f /home/scripts/db/schema.sql
 
-debug_if "$PHONEHOME_DEBUG_ENABLED" /home/phone-home \
+pccx exec PHONEHOME /home/phone-home \
 	--overrideSystemProperties \
 	--configProfile docker \
-	--dbHost "$POSTGRES_HOST" \
-	--dbName "$PHONEHOME_DB" \
-	--dbUsername "$PHONEHOME_DB_USER" \
-	--dbPassword "$PHONEHOME_DB_PASSWORD" \
-	--configUri "/var/lib/pccx/${service}.yml" \
+	--dbHost "$HOST_POSTGRES" \
+	--dbName "$DB_NAME_PHONEHOME" \
+	--dbUsername "$DB_USER_PHONEHOME" \
+	--dbPassword "$DB_PASSWORD_PHONEHOME" \
+	--configUri "/run/config.yml" \
 	--customer "$PHONEHOME_CUSTOMER" \
 	--services "platina-monitor,key-manager,monitor,registry,maas,node-exporter,mailer,user-management,platina-executor,cadvisor,gateway,pccserver,security" \
 	--useHostnameAsAddress \

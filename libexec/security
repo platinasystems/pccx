@@ -2,21 +2,16 @@
 
 set -e
 
-. /run/secrets/env
-. /usr/libexec/pccx/rc
-. /usr/libexec/pccx/rc
+. /usr/share/pccx/rc.sh
 
-wait_for_postgres
-wait_for_host_port $APIREGISTRY_HOST $APIREGISTRY_PORT
-wait_for_host_port $PCCSERVER_HOST $PCCSERVER_PORT
+pccx wait postgres
+pccx wait service $HOST_APIREGISTRY $PORT_APIREGISTRY
+pccx wait service $HOST_PCCSERVER $PORT_PCCSERVER
 
-trace_if "$SECURITY_TRACE_ENABLED"
+pccx trace SECURITY
 
-service=${0##*/}
-combine_yaml /home/scripts/microservice/yaml-combiner-alpine \
-	/home/conf/default.yml \
-	/usr/lib/pccx/${service}.yml \
-	/var/lib/pccx/${service}.yml
+pccx merge /home/scripts/microservice/yaml-combiner-alpine \
+	/home/conf/default.yml /usr/share/pccx/${0##*/}.yml /run/config.yml
 
 SECURITY_ADMIN_PASSWD_HASH=$(java -cp security-jwt-*.jar \
 	-Dloader.main=com.auctacognitio.security.key.KeyGeneratorTool \
@@ -25,42 +20,42 @@ SECURITY_ADMIN_PASSWD_HASH=$(java -cp security-jwt-*.jar \
 
 PGPASSWORD=$POSTGRES_PASSWORD psql \
         -U "$POSTGRES_USER" \
-        -h "$POSTGRES_HOST" \
-        -e "$POSTGRES_DB" \
+        -h "$HOST_POSTGRES" \
+        -e "$DB_NAME_POSTGRES" \
         -f /home/scripts/db/init.sql \
-        -v "role=$SECURITY_DB_USER" \
-        -v "passwd=$SECURITY_DB_PASSWORD" \
-        -v "db=$SECURITY_DB" \
-        -v "dbschema=$SECURITY_DB_SCHEMA"
-PGPASSWORD="$SECURITY_DB_PASSWORD" psql \
-        -U "$SECURITY_DB_USER" \
-        -h "$POSTGRES_HOST" \
-        -e "$SECURITY_DB" \
+        -v "role=$DB_USER_SECURITY" \
+        -v "passwd=$DB_PASSWORD_SECURITY" \
+        -v "db=$DB_NAME_SECURITY" \
+        -v "dbschema=$DB_SCHEMA_SECURITY"
+PGPASSWORD="$DB_PASSWORD_SECURITY" psql \
+        -U "$DB_USER_SECURITY" \
+        -h "$HOST_POSTGRES" \
+        -e "$DB_NAME_SECURITY" \
         -f /home/scripts/db/schema.sql
 PGPASSWORD="$POSTGRES_PASSWORD" psql \
         -U "$POSTGRES_USER" \
-        -h "$POSTGRES_HOST" \
-        -e "$SECURITY_DB" \
-	-v "pccdb=$PCC_DB" \
-	-v "pccdbHost=$PCC_DB_HOST" \
-	-v "pccdbPort=$PCC_DB_PORT" \
-	-v "pccdbUser=$PCC_DB_USER" \
-	-v "pccdbPassword=$PCC_DB_PASSWORD" \
+        -h "$HOST_POSTGRES" \
+        -e "$DB_NAME_SECURITY" \
+	-v "pccdb=$DB_NAME_PCC" \
+	-v "pccdbHost=$HOST_POSTGRES" \
+	-v "pccdbPort=$PORT_POSTGRES" \
+	-v "pccdbUser=$DB_USER_PCC" \
+	-v "pccdbPassword=$DB_PASSWORD_PCC" \
 	-v "foreignSchema=$SECURITY_FOREIGN_SCHEMA" \
 	-v "foreignTables=$SECURITY_FOREIGN_TABLES" \
-	-v "dbUser=$SECURITY_DB_USER" \
+	-v "dbUser=$DB_USER_SECURITY" \
 	-v "adminUser=$POSTGRES_USER" \
-	-v "platinamonitorDbUser=$PLATINAMONITOR_DB_USER" \
-	-v "platinamonitorDbPassword=$PLATINAMONITOR_DB_PASSWORD" \
+	-v "platinamonitorDbUser=$DB_USER_PLATINAMONITOR" \
+	-v "platinamonitorDbPassword=$DB_PASSWORD_PLATINAMONITOR" \
 	-v "serverAdminHash=$SECURITY_ADMIN_PASSWD_HASH" \
         -f /home/scripts/db/post-init.sql
 
-debug_if "$SECURITY_DEBUG_ENABLED" java \
-	-D"eureka.client.service-url.defaultZone=$APIREGISTRY_URI" \
+pccx exec SECURITY java \
+	-D"eureka.client.service-url.defaultZone=$URI_EUREKA" \
 	-D"spring.cloud.config.failFast=false" \
-	-D"spring.config.location=/var/lib/pccx/${service}.yml" \
-	-D"spring.datasource.password=$SECURITY_DB_PASSWORD" \
-	-D"spring.datasource.url=jdbc:postgresql://$POSTGRES_HOST/$SECURITY_DB" \
-	-D"spring.datasource.username=$SECURITY_DB_USER" \
+	-D"spring.config.location=/run/config.yml" \
+	-D"spring.datasource.password=$DB_PASSWORD_SECURITY" \
+	-D"spring.datasource.url=jdbc:postgresql://$HOST_POSTGRES/$DB_NAME_SECURITY" \
+	-D"spring.datasource.username=$DB_USER_SECURITY" \
 	-D"spring.profiles.active=docker" \
 	-jar security-jwt-*.jar

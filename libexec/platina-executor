@@ -2,49 +2,44 @@
 
 set -e
 
-. /run/secrets/env
-. /run/secrets/pccx
-. /usr/libexec/pccx/rc
+. /usr/share/pccx/rc.sh
 
-wait_for_postgres
-wait_for_url_pat "http://$KAFKA_ADV_HOST:8081" "{}"
-wait_for_url_pat "http://$APIREGISTRY_HOST:$APIREGISTRY_PORT" .
+pccx wait postgres
+pccx wait url $URI_KAFKA "{}"
+pccx wait url $URI_APIREGISTRY .
 
-service=${0##*/}
-combine_yaml /home/scripts/microservice/yaml-combiner \
-	/home/conf/default.yml \
-	/usr/lib/pccx/${service}.yml \
-	/var/lib/pccx/${service}.yml
+pccx merge /home/scripts/microservice/yaml-combiner \
+	/home/conf/default.yml /usr/share/pccx/${0##*/}.yml /run/config.yml
 
-trace_if "$PLATINAEXECUTOR_TRACE_ENABLED"
+pccx trace PLATINAEXECUTOR
 
 PGPASSWORD="$POSTGRES_PASSWORD" psql \
         -U "$POSTGRES_USER" \
-        -h "$POSTGRES_HOST" \
-        -e "$POSTGRES_DB" \
+        -h "$HOST_POSTGRES" \
+        -e "$DB_NAME_POSTGRES" \
         -f /home/scripts/db/init.sql \
-        -v "role=$PLATINAEXECUTOR_DB_USER" \
-        -v "passwd=$PLATINAEXECUTOR_DB_PASSWORD" \
-        -v "db=$PLATINAEXECUTOR_DB" \
-        -v "dbschema=$PLATINAEXECUTOR_DB_SCHEMA"
-PGPASSWORD="$PLATINAEXECUTOR_DB_PASSWORD" psql \
-        -U "$PLATINAEXECUTOR_DB_USER" \
-        -h "$POSTGRES_HOST" \
-        -e "$PLATINAEXECUTOR_DB" \
+        -v "role=$DB_USER_PLATINAEXECUTOR" \
+        -v "passwd=$DB_PASSWORD_PLATINAEXECUTOR" \
+        -v "db=$DB_NAME_PLATINAEXECUTOR" \
+        -v "dbschema=$DB_SCHEMA_PLATINAEXECUTOR"
+PGPASSWORD="$DB_PASSWORD_PLATINAEXECUTOR" psql \
+        -U "$DB_USER_PLATINAEXECUTOR" \
+        -h "$HOST_POSTGRES" \
+        -e "$DB_NAME_PLATINAEXECUTOR" \
         -f /home/scripts/db/schema.sql
 
-debug_if "$PLATINAEXECUTOR_DEBUG_ENABLED" /home/platina-executor \
+pccx exec PLATINAEXECUTOR /home/platina-executor \
 	--overrideSystemProperties \
 	--configProfile docker \
-	--configUri "/var/lib/pccx/${service}.yml" \
-	--configBranch "$PLATINAEXECUTOR_CONFIG_BRANCH" \
-	--dbHost "$POSTGRES_HOST" \
-	--dbName "$PLATINAEXECUTOR_DB" \
-	--dbUsername "$PLATINAEXECUTOR_DB_USER" \
-	--dbPassword "$PLATINAEXECUTOR_DB_PASSWORD" \
+	--configUri "/run/config.yml" \
+	--configBranch "$CONFIG_BRANCH_PLATINAEXECUTOR" \
+	--dbHost "$HOST_POSTGRES" \
+	--dbName "$DB_NAME_PLATINAEXECUTOR" \
+	--dbUsername "$DB_USER_PLATINAEXECUTOR" \
+	--dbPassword "$DB_PASSWORD_PLATINAEXECUTOR" \
 	--phAccessKey "$PHONEHOME_ACCESS_KEY" \
 	--phSecretKey "$PHONEHOME_SECRET_KEY" \
 	--useHostnameAsAddress \
 	--useHostnameAsName \
-	--registryAddress "$APIREGISTRY_HOST" \
+	--registryAddress "$HOST_APIREGISTRY" \
 	--maxRegistrationRetry 5

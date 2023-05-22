@@ -2,62 +2,62 @@
 
 set -e
 
-. /run/secrets/env
-. /run/secrets/pccx
-. /usr/libexec/pccx/rc
+. /usr/share/pccx/rc.sh
 
-minio_export
+export MINIO_ROOT_USER
+export MINIO_ROOT_PASSWORD
+export MINIO_VOLUMES
+export MINIO_PORT
+export MINIO_ITERATIONS
+export MINIO_PERIOD_SECS
 
-wait_for_postgres
-wait_for_url_pat "http://$APIREGISTRY_HOST:$APIREGISTRY_PORT" .
-wait_for_url_pat "http://$MINIO_HOST:$MINIO_PORT" "Access Denied"
-wait_for_url_pat "http://$KAFKA_ADV_HOST:8081" "{}"
-wait_for_host_port $PLATINAEXECUTOR_HOST $PLATINAEXECUTOR_PORT
-wait_for_host_port $MAAS_HOST $MAAS_PORT
+pccx wait postgres
+pccx wait url $URI_APIREGISTRY .
+pccx wait url $URI_MINIO "Access Denied"
+pccx wait url $URI_KAFKA "{}"
+pccx wait service $HOST_PLATINAEXECUTOR $PORT_PLATINAEXECUTOR
+pccx wait service $HOST_MAAS $PORT_MAAS
 
-trace_if "$PCC_TRACE_ENABLED"
+pccx trace PCC
 
-service=${0##*/}
-combine_yaml /home/scripts/microservice/yaml-combiner \
-	/home/conf/default.yml \
-	/usr/lib/pccx/${service}.yml \
-	/var/lib/pccx/${service}.yml
+pccx merge /home/scripts/microservice/yaml-combiner \
+	/home/conf/default.yml /usr/share/pccx/${0##*/}.yml /run/config.yml
 
 rsync -rt /home/new_ansible/ /home/ansible/
 rsync -rt /home/new_orchestration/ /home/orchestration/
 rsync -rt /home/new_kubespray/ /home/kubespray/
 
-test -z "$PCCUI_HOST_IP" -o "$PCCUI_HOST_IP" = "0.0.0.0" ||
-        sed -i "s/localhost/${PCCUI_HOST_IP}/g" /home/swagger/swagger.json
+test -z "$HOST_PCCUI_IP" -o "$HOST_PCCUI_IP" = "0.0.0.0" ||
+        sed -i "s/localhost/${HOST_PCCUI_IP}/g" /home/swagger/swagger.json
 
 PGPASSWORD="$POSTGRES_PASSWORD" psql \
         -U "$POSTGRES_USER" \
-        -h "$POSTGRES_HOST" \
-        -e "$POSTGRES_DB" \
+        -h "$HOST_POSTGRES" \
+        -e "$DB_NAME_POSTGRES" \
         -f /home/scripts/db/init.sql \
-        -v "role=$PCC_DB_USER" \
-        -v "passwd=$PCC_DB_PASSWORD" \
-        -v "db=$PCC_DB" \
-        -v "dbschema=$PCC_DB_SCHEMA"
-PGPASSWORD="$PCC_DB_PASSWORD" psql \
-        -U "$PCC_DB_USER" \
-        -h "$POSTGRES_HOST" \
-        -e "$PCC_DB" \
+        -v "role=$DB_USER_PCC" \
+        -v "passwd=$DB_PASSWORD_PCC" \
+        -v "db=$DB_NAME_PCC" \
+        -v "dbschema=$DB_SCHEMA_PCC"
+PGPASSWORD="$DB_PASSWORD_PCC" psql \
+        -U "$DB_USER_PCC" \
+        -h "$HOST_POSTGRES" \
+        -e "$DB_NAME_PCC" \
         -f /home/scripts/db/schema.sql
 PGPASSWORD="$POSTGRES_PASSWORD" psql \
         -U "$POSTGRES_USER" \
-        -h "$POSTGRES_HOST" \
-        -e "$PCC_DB" \
+        -h "$HOST_POSTGRES" \
+        -e "$DB_NAME_PCC" \
         -f /home/scripts/db/post-init.sql
 
-debug_if "$PCC_DEBUG_ENABLED" /home/pccserver \
+pccx exec PCC /home/pccserver \
         --overrideSystemProperties \
         --configProfile docker \
-        --dbHost "$POSTGRES_HOST" \
-        --dbName "$PCC_DB" \
-        --dbUsername "$PCC_DB_USER" \
-        --dbPassword "$PCC_DB_PASSWORD" \
-        --configUri /var/lib/pccx/${service}.yml \
+        --dbHost "$HOST_POSTGRES" \
+        --dbName "$DB_NAME_PCC" \
+        --dbUsername "$DB_USER_PCC" \
+        --dbPassword "$DB_PASSWORD_PCC" \
+        --configUri /run/config.yml \
         --phAccessKey "$PHONEHOME_ACCESS_KEY" \
         --phSecretKey "$PHONEHOME_SECRET_KEY" \
         --useHostnameAsAddress \
@@ -65,4 +65,4 @@ debug_if "$PCC_DEBUG_ENABLED" /home/pccserver \
         --registryAddress registry \
         --maxRegistrationRetry 5 \
         --publicAddress "$PCC_HOST_IP" \
-        --configBranch "$PCC_CONFIG_BRANCH"
+        --configBranch "$CONFIG_BRANCH_PCC"

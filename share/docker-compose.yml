@@ -1,0 +1,539 @@
+version: '3.4'
+
+x-tlsx-environment: &tlsx-environment
+  TLSX_CERT_FILE: /etc/pccx/cert.pem
+  TLSX_KEY_FILE: /etc/pccx/key.pem
+
+x-volumes:
+- &pccx-etc ${PCCX_ETC}:/etc/pccx:ro
+- &pccx-libexec ${PCCX_LIBEXEC}:/usr/libexec/pccx:ro
+- &pccx-share ${PCCX_SHARE}:/usr/share/pccx:ro
+- &prometheus-rules ${PCCX_VAR}/prometheus-rules:/home/prometheus/rules/
+
+services:
+  tlsx:
+    container_name: tlsx
+    image: ${IMAGE_TLSX}
+    restart: ${RESTART}
+    ports:
+    - ${PORT_TLSX}:8003
+    environment:
+      <<: *tlsx-environment
+      TLSX_SUBSCRIBERS_FILE: /run/tlsx/subscribers
+    volumes:
+    - *pccx-etc
+    - ${PCCX_VAR}/tlsx:/run/tlsx
+    command:
+    - -verbose=${TLSX_VERBOSE}
+    - start
+    - exchange
+    - ${TLSX_VPN}
+
+  tap:
+    container_name: tap
+    depends_on: [ tlsx ]
+    image: ${IMAGE_TLSX}
+    restart: ${RESTART}
+    networks:
+      default:
+      backend:
+        aliases:
+        - kafka
+        - pccserver
+    expose:
+    - ${PORT_KAFKA_WEB}
+    - ${PORT_PCCSERVER}
+    ports:
+    - ${PORT_KAFKA_REGISTRY}:${PORT_KAFKA_REGISTRY}
+    - ${PORT_KAFKA_BROKER}:${PORT_KAFKA_BROKER}
+    cap_add: [ ALL ]
+    devices: [ /dev/net/tun ]
+    privileged: true
+    user: "0:0"
+    environment:
+      <<: *tlsx-environment
+    volumes:
+    - *pccx-etc
+    command:
+    - -verbose=${TLSX_VERBOSE}
+    - start
+    - tap
+    - -a
+    - ${TLSX_TAP_ADDR}
+    - "@tlsx"
+
+  kafka:
+    container_name: kafka
+    platform: linux/amd64
+    image: ${IMAGE_KAFKA}
+    restart: ${RESTART}
+    network_mode: "service:tap"
+    privileged: true
+    user: "0:0"
+    tmpfs: /run
+    volumes:
+    - *pccx-etc
+    - *pccx-libexec
+    - *pccx-share
+    - ${PCCX_VAR}/kafka:/var/lib/kafka
+    - ${PCCX_LOG}/kafka:/var/log
+    - ${PCCX_SHARE}/kafka/zookeeper-3.5.9-patch.jar:/opt/landoop/kafka/share/java/kafka/zookeeper-3.5.9.jar
+    - ${PCCX_SHARE}/kafka/zookeeper-3.5.9-patch.jar:/opt/landoop/kafka/share/java/schema-registry/zookeeper-3.5.8.jar
+    - ${PCCX_SHARE}/kafka/zookeeper-3.5.9-patch.jar:/opt/landoop/kafka/share/java/landoop-common/zookeeper-3.5.7.jar
+    - ${PCCX_SHARE}/kafka/zookeeper-3.5.9-patch.jar:/opt/landoop/connectors/third-party/kafka-connect-s3/zookeeper-3.5.8.jar
+    - ${PCCX_SHARE}/kafka/zookeeper-jute-3.5.9.jar:/opt/landoop/kafka/share/java/kafka/zookeeper-jute-3.5.9.jar
+    - ${PCCX_SHARE}/kafka/zookeeper-jute-3.5.9.jar:/opt/landoop/kafka/share/java/schema-registry/zookeeper-jute-3.5.8.jar
+    - ${PCCX_SHARE}/kafka/zookeeper-jute-3.5.9.jar:/opt/landoop/kafka/share/java/landoop-common/zookeeper-jute-3.5.7.jar
+    - ${PCCX_SHARE}/kafka/zookeeper-jute-3.5.9.jar:/opt/landoop/connectors/third-party/kafka-connect-s3/zookeeper-jute-3.5.8.jar
+    command: /usr/libexec/pccx/kafka
+
+  pccserver:
+    container_name: pccserver
+    depends_on: [ postgres, api-registry, kafka, platina-executor, maas ]
+    platform: linux/amd64
+    image: ${IMAGE_PCC}
+    restart: ${RESTART}
+    network_mode: "service:tap"
+    privileged: true
+    cap_add:
+    - SYS_PTRACE
+    - NET_ADMIN
+    - SYS_ADMIN
+    devices: [ /dev/net/tun ]
+    tmpfs: /run
+    volumes:
+    - *pccx-etc
+    - *pccx-libexec
+    - *pccx-share
+    - ${PCCX_VAR}/pccserver:/var/lib/pccserver
+    - ${PCCX_LOG}/pccserver:/var/log
+    - ops-playbooks:/home/ops
+    - orchestration-playbooks:/home/orchestration
+    - kubespray2-playbooks:/home/kubespray
+    - kubespray-playbooks:/home/turnkey-kubespray
+    - pccserver-playbooks:/home/ansible
+    entrypoint: /usr/libexec/pccx/pccserver
+
+  redis:
+    container_name: redis
+    image: ${IMAGE_REDIS}
+    networks:
+      backend:
+        aliases:
+        - monitor_redis
+    expose:
+    - ${PORT_REDIS}
+    volumes:
+    - ${PCCX_VAR}/redis:/data
+
+  postgres:
+    container_name: postgres
+    platform: linux/amd64
+    image: ${IMAGE_POSTGRES}
+    restart: ${RESTART}
+    networks:
+      backend:
+        aliases:
+        - postgres-db
+    expose:
+    - ${PORT_POSTGRES}
+    tmpfs: /run
+    volumes:
+    - *pccx-etc
+    - *pccx-libexec
+    - *pccx-share
+    - ${PCCX_VAR}/postgres:/var/lib/postgresql
+    - ${PCCX_LOG}/postgres:/var/log
+    entrypoint: /usr/libexec/pccx/postgres
+    command: postgres -c config_file=/usr/share/pccx/postgresql.conf
+
+  prometheus:
+    container_name: prometheus
+    image: ${IMAGE_PROMETHEUS}
+    restart: ${RESTART}
+    networks: [ backend ]
+    expose:
+    - ${PORT_PROMETHEUS}
+    privileged: true
+    user: "0:0"
+    volumes:
+    - *pccx-etc
+    - *pccx-libexec
+    - *pccx-share
+    - *prometheus-rules
+    - ${PCCX_VAR}/prometheus:/prometheus/data
+    - ${PCCX_LOG}/prometheus:/var/log
+    command: >-
+      --config.file=/usr/share/pccx/prometheus.yml
+      --web.enable-lifecycle
+      --storage.tsdb.retention.time=15d
+
+  adminer:
+    container_name: adminer
+    depends_on: [ postgres ]
+    image: ${IMAGE_ADMINER}
+    restart: ${RESTART}
+    networks: [ backend ]
+    expose:
+    - ${PORT_ADMINER}
+    command: php -S "[::]:8080" -t /var/www/html
+
+  minio:
+    container_name: minio
+    image: ${IMAGE_MINIO}
+    restart: ${RESTART}
+    networks:
+      backend:
+        aliases:
+        - storage
+    expose:
+    - ${PORT_MINIO}
+    - ${PORT_MINIO_CONSOLE}
+    volumes:
+    - *pccx-etc
+    - *pccx-libexec
+    - *pccx-share
+    - ${PCCX_VAR}/minio:/var/lib/minio
+    - ${PCCX_LOG}/minio:/var/log
+    entrypoint: /usr/libexec/pccx/minio
+    healthcheck:
+      interval: 30s
+      timeout: 2s
+      test:
+      - "CMD"
+      - "curl"
+      - "-f"
+      - "-k"
+      - "http://minio:${PORT_MINIO}/minio/health/live"
+    command: server
+      --certs-dir=/mnt/certs
+      --console-address=:${PORT_MINIO_CONSOLE}
+      /var/lib/minio
+
+  cadvisor:
+    container_name: cadvisor
+    image: ${IMAGE_CADVISOR}
+    restart: ${RESTART}
+    networks: [ backend ]
+    expose:
+    - ${PORT_CADVISOR}
+    labels:
+      org.label-schema.group: "monitoring"
+    privileged: true
+    devices: [ "/dev/kmsg:/dev/kmsg" ]
+    volumes:
+    - /:/rootfs:ro
+    - /sys:/sys:ro
+    - /var/lib/docker:/var/lib/docker:ro
+    - /etc/machine-id:/etc/machine-id:ro
+    - /var/lib/dbus/machine-id:/var/lib/dbus/machine-id:ro
+    command:
+    - '--docker_only=true'
+    - '--housekeeping_interval=15s'
+    - '--port=8080'
+
+  node-exporter:
+    container_name: node-exporter
+    image: ${IMAGE_NODE_EXPORTER}
+    restart: ${RESTART}
+    networks: [ backend ]
+    expose:
+    - ${PORT_NODE_EXPORTER}
+    volumes:
+    - /proc:/host/proc:ro
+    - /sys:/host/sys:ro
+    - /:/rootfs:ro
+    command:
+    - '--path.procfs=/host/proc'
+    - '--path.rootfs=/rootfs'
+    - '--path.sysfs=/host/sys'
+    - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+
+  alertmanager:
+    container_name: alertmanager
+    image: ${IMAGE_ALERTMANAGER}
+    restart: ${RESTART}
+    networks: [ backend ]
+    expose:
+    - ${PORT_ALERTMANAGER}
+    labels:
+      org.label-schema.group: "monitoring"
+    volumes:
+    - *pccx-etc
+    - *pccx-libexec
+    - *pccx-share
+    - ${PCCX_VAR}/alertmanager:/var/lib/alertmanager
+    - ${PCCX_LOG}/alertmanager:/var/log
+    command: >-
+      --config.file=/usr/share/pccx/alertmanager.yml
+      --storage.path=/var/lib/alertmanager
+
+  pushgateway:
+    container_name: pushgateway
+    image: ${IMAGE_PUSHGATEWAY}
+    restart: ${RESTART}
+    networks: [ backend ]
+    expose:
+    - ${PORT_PUSHGATEWAY}
+    labels:
+      org.label-schema.group: "monitoring"
+    command: [ '--web.enable-admin-api' ]
+
+  api-registry:
+    container_name: api-registry
+    depends_on: [ postgres ]
+    platform: linux/amd64
+    image: ${IMAGE_APIREGISTRY}
+    restart: ${RESTART}
+    networks:
+      backend:
+        aliases:
+        - registry
+    expose:
+    - ${PORT_APIREGISTRY}
+    tmpfs: /run
+    volumes:
+    - *pccx-etc
+    - *pccx-libexec
+    - *pccx-share
+    - ${PCCX_VAR}/api-registry:/var/lib/api-registry
+    - ${PCCX_LOG}/api-registry:/var/log
+    entrypoint: /usr/libexec/pccx/api-registry
+
+  gateway:
+    container_name: gateway
+    depends_on:
+    - postgres
+    - pccserver
+    - security
+    - user-management
+    - key-manager
+    - platina-monitor
+    - maas
+    platform: linux/amd64
+    image: ${IMAGE_GATEWAY}
+    restart: ${RESTART}
+    networks: [ backend ]
+    ports: [ "443:9999" ]
+    expose:
+    - ${PORT_GATEWAY}
+    tmpfs: /run
+    volumes:
+    - *pccx-etc
+    - *pccx-libexec
+    - *pccx-share
+    - ${PCCX_VAR}/gateway:/var/lib/gateway
+    - ${PCCX_LOG}/gateway:/var/log
+    entrypoint: /usr/libexec/pccx/gateway
+
+  mailer:
+    container_name: mailer
+    depends_on: [ postgres, api-registry ]
+    platform: linux/amd64
+    image: ${IMAGE_MAILER}
+    restart: ${RESTART}
+    networks: [ backend ]
+    expose:
+    - ${PORT_MAILER}
+    cap_add: [ SYS_PTRACE ]
+    tmpfs: /run
+    volumes:
+    - *pccx-etc
+    - *pccx-libexec
+    - *pccx-share
+    - ${PCCX_VAR}/mailer:/var/lib/mailer
+    - ${PCCX_LOG}/mailer:/var/log
+    entrypoint: /usr/libexec/pccx/mailer
+
+  user-management:
+    container_name: user-management
+    depends_on: [ api-registry, security, minio, mailer ]
+    platform: linux/amd64
+    image: ${IMAGE_USERMANAGEMENT}
+    restart: ${RESTART}
+    networks: [ backend ]
+    expose:
+    - ${PORT_USERMANAGEMENT}
+    tmpfs: /run
+    volumes:
+    - *pccx-etc
+    - *pccx-libexec
+    - *pccx-share
+    - ${PCCX_VAR}/user-management:/var/lib/user-management
+    - ${PCCX_LOG}/user-management:/var/log
+    entrypoint: /usr/libexec/pccx/user-management
+
+  security:
+    container_name: security
+    depends_on: [ postgres, api-registry, pccserver ]
+    platform: linux/amd64
+    image: ${IMAGE_SECURITY}
+    restart: ${RESTART}
+    networks: [ backend ]
+    expose:
+    - ${PORT_SECURITY}
+    tmpfs: /run
+    volumes:
+    - *pccx-etc
+    - *pccx-libexec
+    - *pccx-share
+    - ${PCCX_VAR}/security:/var/lib/security
+    - ${PCCX_LOG}/security:/var/log
+    entrypoint: /usr/libexec/pccx/security
+
+  key-manager:
+    container_name: key-manager
+    depends_on: [ postgres, api-registry ]
+    platform: linux/amd64
+    image: ${IMAGE_KEYMANAGER}
+    restart: ${RESTART}
+    cap_add: [ ALL ]
+    privileged: true
+    user: "0:0"
+    networks: [ backend ]
+    expose: 
+    - ${PORT_KEYMANAGER}
+    tmpfs: /run
+    volumes:
+    - *pccx-etc
+    - *pccx-libexec
+    - *pccx-share
+    - ${PCCX_VAR}/key-manager:/var/lib/key-manager
+    - ${PCCX_LOG}/key-manager:/var/log
+    entrypoint: /usr/libexec/pccx/key-manager
+
+  monitor:
+    container_name: monitor
+    depends_on: [ api-registry, redis, kafka ]
+    platform: linux/amd64
+    image: ${IMAGE_MONITOR}
+    restart: ${RESTART}
+    networks: [ backend ]
+    expose:
+    - ${PORT_MONITOR}
+    tmpfs: /run
+    volumes:
+    - *pccx-etc
+    - *pccx-libexec
+    - *pccx-share
+    - ${PCCX_VAR}/monitor:/var/lib/monitor
+    - ${PCCX_LOG}/monitor:/var/log
+    entrypoint: /usr/libexec/pccx/monitor
+
+  platina-executor:
+    container_name: platina-executor
+    depends_on: [ kafka ]
+    platform: linux/amd64
+    image: ${IMAGE_PLATINAEXECUTOR}
+    restart: ${RESTART}
+    networks: [ backend ]
+    expose:
+    - ${PORT_PLATINAEXECUTOR}
+    privileged: true
+    tmpfs: /run
+    volumes:
+    - *pccx-etc
+    - *pccx-libexec
+    - *pccx-share
+    - ${PCCX_VAR}/platina-executor:/var/lib/platina-executor
+    - ${PCCX_LOG}/platina-executor:/var/log
+    - /usr/bin/docker:/usr/bin/docker
+    - /var/run/docker.sock:/var/run/docker.sock
+    - pccserver-playbooks:/home/ansible:ro
+    - kubespray2-playbooks:/home/kubespray:ro
+    - kubespray-playbooks:/home/turnkey-kubespray:ro
+    - ops-playbooks:/home/ops:ro
+    - orchestration-playbooks:/home/orchestration
+    entrypoint: /usr/libexec/pccx/platina-executor
+
+  platina-monitor:
+    container_name: platina-monitor
+    depends_on:
+    - postgres
+    - api-registry
+    - kafka
+    - prometheus
+    - alertmanager
+    - pushgateway
+    - mailer
+    platform: linux/amd64
+    image: ${IMAGE_PLATINAMONITOR}
+    restart: ${RESTART}
+    networks: [ backend ]
+    expose:
+    - ${PORT_PLATINAMONITOR}
+    tmpfs: /run
+    volumes:
+    - *pccx-etc
+    - *pccx-libexec
+    - *pccx-share
+    - ${PCCX_VAR}/platina-monitor:/var/lib/platina-monitor
+    - ${PCCX_LOG}/platina-monitor:/var/log
+    - *prometheus-rules
+    entrypoint: /usr/libexec/pccx/platina-monitor
+
+  maas:
+    container_name: maas
+    depends_on: [ postgres, api-registry ]
+    platform: linux/amd64
+    image: ${IMAGE_MAAS}
+    restart: ${RESTART}
+    networks: [ backend ]
+    expose:
+    - ${PORT_MAAS}
+    privileged: true
+    cap_add: [ SYS_PTRACE ]
+    tmpfs: /run
+    volumes:
+    - *pccx-etc
+    - *pccx-libexec
+    - *pccx-share
+    - ${PCCX_VAR}/maas:/var/lib/maas
+    - ${PCCX_LOG}/maas:/var/log
+    entrypoint: /usr/libexec/pccx/maas
+
+  phone-home:
+    container_name: phone-home
+    depends_on: [ postgres, api-registry, minio ]
+    platform: linux/amd64
+    image: ${IMAGE_PHONEHOME}
+    restart: ${RESTART}
+    networks: [ backend ]
+    expose: [ 8383, 9000 ]
+    cap_add: [ SYS_PTRACE ]
+    tmpfs: /run
+    volumes:
+    - *pccx-etc
+    - *pccx-libexec
+    - *pccx-share
+    - ${PCCX_VAR}/phone-home:/var/lib/phone-home
+    - ${PCCX_LOG}/phone-home:/var/log
+    entrypoint: /usr/libexec/pccx/phone-home
+
+  pcc-ui:
+    container_name: pcc-ui
+    depends_on: [ gateway ]
+    platform: linux/amd64
+    image: ${IMAGE_PCCUI}
+    restart: ${RESTART}
+    networks: [ backend ]
+    expose:
+    - ${PORT_PCCUI}
+    volumes:
+    - *pccx-etc
+    - *pccx-libexec
+    - *pccx-share
+    - ${PCCX_VAR}/pcc-ui:/var/lib/pcc-ui
+    - ${PCCX_LOG}/pcc-ui:/var/log
+    entrypoint: /usr/libexec/pccx/pcc-ui
+
+networks:
+  backend: {}
+
+volumes:
+  tlsx:
+  kubespray2-playbooks:
+  kubespray-playbooks:
+  ops-playbooks:
+  orchestration-playbooks:
+  pccserver-playbooks:

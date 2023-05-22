@@ -1,0 +1,44 @@
+#!/bin/sh
+
+set -e
+
+: ${PCCX_ETC:=/etc/pccx}
+: ${PCCX_LIBEXEC:=/usr/libexec/pccx}
+: ${PCCX_LOG:=/var/log/pccx}
+: ${PCCX_SHARE:=/usr/share/pccx}
+: ${PCCX_VAR:=/var/lib/pccx}
+
+. /usr/share/debconf/confmodule
+. ${PCCX_SHARE}/pccx.sh
+
+case "$1" in
+configure)
+	test -r $PCCX_ETC/cert.pem -a -r $PCCX_ETC/key.pem ||
+		pccx cert debconf $PCCX_ETC/cert.pem $PCCX_ETC/key.pem
+	test -f $PCCX_ETC/id_rsa ||
+		pccx rsa gen $PCCX_ETC/id_rsa
+	pccx compose configure $PCCX_SHARE/default.env \
+		$PCCX_ETC/docker-compose.env 
+	pccx container debconf $PCCX_ETC/pccx.env 
+	;;
+abort-upgrade)
+	# unwind `new-prerm failed-upgrade` failure to
+	# unwind `old-prerm upgrade` failure
+	;;
+abort-remove)
+	# unwind `conflictor's-prerm remove` failure
+	;;
+abort-deconfigure)
+	# unwind `deconfigured's-prerm deconfigure` failure
+	;;
+*)
+	echo ${0##*/}: \`$1\': unkown >&2
+	exit 1
+	;;
+esac
+
+#DEBHELPER#
+
+db_stop
+
+exit 0

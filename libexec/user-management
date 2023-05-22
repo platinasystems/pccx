@@ -2,31 +2,31 @@
 
 set -e
 
-. /run/secrets/env
-. /run/secrets/pccx
-. /usr/libexec/pccx/rc
+. /usr/share/pccx/rc.sh
 
-minio_export
+export MINIO_ROOT_USER
+export MINIO_ROOT_PASSWORD
+export MINIO_VOLUMES
+export MINIO_PORT
+export MINIO_ITERATIONS
+export MINIO_PERIOD_SECS
 
-wait_for_url_pat "http://$APIREGISTRY_HOST:$APIREGISTRY_PORT" .
-wait_for_host_port $SECURITY_HOST $SECURITY_PORT
-wait_for_url_pat "http://$MINIO_HOST:$MINIO_PORT" "Access Denied"
+pccx wait url $URI_APIREGISTRY .
+pccx wait service $HOST_SECURITY $PORT_SECURITY
+pccx wait url $URI_MINIO "Access Denied"
 
-trace_if "$USERMANAGEMENT_TRACE_ENABLED"
+pccx trace USERMANAGEMENT
 
-service=${0##*/}
-combine_yaml /home/scripts/microservice/yaml-combiner-alpine \
-	/home/conf/default.yml \
-	/usr/lib/pccx/${service}.yml \
-	/var/lib/pccx/${service}.yml
+pccx merge /home/scripts/microservice/yaml-combiner-alpine \
+	/home/conf/default.yml /usr/share/pccx/${0##*/}.yml /run/config.yml
 
-debug_if "$USERMANAGEMENT_DEBUG_ENABLED" java \
-	-D"eureka.client.service-url.defaultZone=$APIREGISTRY_URI" \
-	-D"server.port=$USERMANAGEMENT_PORT" \
+pccx exec USERMANAGEMENT java \
+	-D"eureka.client.service-url.defaultZone=$URI_EUREKA" \
+	-D"server.port=$PORT_USERMANAGEMENT" \
 	-D"spring.application.name=user-management" \
 	-D"spring.cloud.config.failFast=false" \
 	-D"spring.config.active.on-profile=docker" \
-	-D"spring.config.location=/var/lib/pccx/${service}.yml" \
-	-D"spring.datasource.password=$USERMANAGEMENT_DB_PASSWORD" \
-	-D"spring.datasource.username=$USERMANAGEMENT_DB_USER" \
+	-D"spring.config.location=/run/config.yml" \
+	-D"spring.datasource.password=$DB_PASSWORD_USERMANAGEMENT" \
+	-D"spring.datasource.username=$DB_USER_USERMANAGEMENT" \
 	-jar user-management-*.jar

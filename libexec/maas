@@ -2,51 +2,46 @@
 
 set -e
 
-. /run/secrets/env
-. /run/secrets/pccx
-. /usr/libexec/pccx/rc
+. /usr/share/pccx/rc.sh
 
-wait_for_postgres
+pccx wait postgres
 
-service=${0##*/}
-combine_yaml /home/scripts/microservice/yaml-combiner \
-	/home/conf/default.yml \
-	/usr/lib/pccx/${service}.yml \
-	/var/lib/pccx/${service}.yml
+pccx merge /home/scripts/microservice/yaml-combiner \
+	/home/conf/default.yml /usr/share/pccx/${0##*/}.yml /run/config.yml
 
-trace_if "$MAAS_TRACE_ENABLED"
+pccx trace MAAS
 
 # FIXME integrate this
 /usr/bin/swagger.sh
 
 PGPASSWORD="$POSTGRES_PASSWORD" psql \
         -U "$POSTGRES_USER" \
-        -h "$POSTGRES_HOST" \
-        -e "$POSTGRES_DB" \
+        -h "$HOST_POSTGRES" \
+        -e "$DB_NAME_POSTGRES" \
         -f /home/scripts/db/init.sql \
-        -v "role=$MAAS_DB_USER" \
-        -v "passwd=$MAAS_DB_PASSWORD" \
-        -v "db=$MAAS_DB" \
-        -v "dbschema=$MAAS_DB_SCHEMA"
-PGPASSWORD="$MAAS_DB_PASSWORD" psql \
-        -U "$MAAS_DB_USER" \
-        -h "$POSTGRES_HOST" \
-        -e "$MAAS_DB" \
+        -v "role=$DB_USER_MAAS" \
+        -v "passwd=$DB_PASSWORD_MAAS" \
+        -v "db=$DB_NAME_MAAS" \
+        -v "dbschema=$DB_SCHEMA_MAAS"
+PGPASSWORD="$DB_PASSWORD_MAAS" psql \
+        -U "$DB_USER_MAAS" \
+        -h "$HOST_POSTGRES" \
+        -e "$DB_NAME_MAAS" \
         -f /home/scripts/db/schema.sql
 
-debug_if "$MAAS_DEBUG_ENABLED" /home/maas \
+pccx exec MAAS /home/maas \
 	--overrideSystemProperties \
 	--configProfile docker \
-	--configUri "/var/lib/pccx/${service}.yml" \
-	--configBranch "$MAAS_CONFIG_BRANCH" \
-	--dbHost "$POSTGRES_HOST" \
-	--dbName "$MAAS_DB" \
-	--dbUsername "$MAAS_DB_USER" \
-	--dbPassword "$MAAS_DB_PASSWORD" \
+	--configUri "/run/config.yml" \
+	--configBranch "$CONFIG_BRANCH_MAAS" \
+	--dbHost "$HOST_POSTGRES" \
+	--dbName "$DB_NAME_MAAS" \
+	--dbUsername "$DB_USER_MAAS" \
+	--dbPassword "$DB_PASSWORD_MAAS" \
 	--phAccessKey "$PHONEHOME_ACCESS_KEY" \
 	--phSecretKey "$PHONEHOME_SECRET_KEY" \
 	--useHostnameAsAddress \
 	--useHostnameAsName \
-	--registryAddress "$APIREGISTRY_HOST" \
+	--registryAddress "$HOST_APIREGISTRY" \
 	--maxRegistrationRetry 5 \
 	--orchestrationGitPath=/home/orchestration

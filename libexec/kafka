@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
 
-LOGDIR=/var/log
-
-. /run/secrets/env
-. /run/secrets/pccx
-. /usr/libexec/pccx/rc
+. /usr/share/pccx/rc.sh
 
 : ${PASSWORD:=$KAFKA_PASSWORD}
 # The basic auth password to access on UI Landoop ( username is kafka )
@@ -130,7 +126,7 @@ export $(cut -d= -f1 /build.info)
 export KAFKA_BROKER_ID=${KAFKA_BROKER_ID:-0}
 export KAFKA_NUM_NETWORK_THREADS=${KAFKA_NUM_NETWORK_THREADS:-2}
 export KAFKA_NUM_IO_THREADS=${KAFKA_NUM_IO_THREADS:-4}
-export KAFKA_LOG_DIRS=${KAFKA_LOG_DIRS:-/var/log}
+export KAFKA_LOG_DIRS=${KAFKA_LOG_DIRS:-/var/log/topics}
 #export KAFKA_NUM_PARTITIONS=${KAFKA_NUM_PARTITIONS:-1}
 export KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=${KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR:-1}
 export KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=${KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR:-1}
@@ -244,12 +240,10 @@ mkdir -p \
 chmod 777 /var/lib/kafka/zookeeper
 
 # Copy log4j files
-cp /usr/lib/pccx/kafka/log4j.properties \
-   /var/run/zookeeper/
-cp /usr/lib/pccx/kafka/log4j.properties \
-   /var/run/broker/
-cp /usr/lib/pccx/kafka/schema-registry.properties \
-   /var/run/schema-registry/
+cp /usr/share/pccx/kafka/log4j.properties /var/run/zookeeper/
+cp /usr/share/pccx/kafka/log4j.properties /var/run/broker/
+cp /usr/share/pccx/kafka/schema-registry.properties /var/run/schema-registry/
+
 cp /opt/landoop/kafka/etc/schema-registry/log4j.properties \
    /var/run/schema-registry/
 cp /opt/landoop/kafka/etc/kafka/connect-log4j.properties \
@@ -296,7 +290,7 @@ source /usr/local/share/landoop/config_kafka.sh
 # setup supervisord
 for service in \
 	/usr/local/share/landoop/etc/supervisord.templates.d/*.conf \
-	/usr/lib/pccx/kafka/*.conf
+	/usr/share/pccx/kafka/*.conf
 do
     # shellcheck disable=SC2094
     /usr/bin/envsubst < "$service" > /etc/supervisord.d/${service##*/}

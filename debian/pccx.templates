@@ -1,0 +1,97 @@
+Template: pccx/MINIO_ROOT_PASSWORD
+Type: password
+Default: miniominio
+Description: minio password: (default is "miniominio")
+
+Template: pccx/POSTGRES_PASSWORD
+Type: password
+Description: postgres admin password:
+
+Template: pccx/DB_PASSWORD_KEYMANAGER
+Type: password
+Description: key-manager table password: (default same as postgres)
+
+Template: pccx/DB_PASSWORD_MAAS
+Type: password
+Description: maas table password: (default same as postgres)
+
+Template: pccx/DB_PASSWORD_PCC
+Type: password
+Description: pcc table password: (default same as postgres)
+
+Template: pccx/DB_PASSWORD_PHONEHOME
+Type: password
+Description: phonehome table password: (default same as postgres)
+
+Template: pccx/DB_PASSWORD_PLATINAEXECUTOR
+Type: password
+Description: platin-executor table password: (default same as postgres)
+
+Template: pccx/DB_PASSWORD_PLATINAMONITOR
+Type: password
+Description: platina-monitor table password: (default same as postgres)
+
+Template: pccx/DB_PASSWORD_POSTGRES
+Type: password
+Description: admin table password: (default same as postgres)
+
+Template: pccx/DB_PASSWORD_SECURITY
+Type: password
+Description: security table password: (default same as postgres)
+
+Template: pccx/DB_PASSWORD_USERMANAGEMENT
+Type: password
+Description: user-management table password: (default same as postgres)
+
+Template: pccx/GATEWAY_KEYSTORE_PASSWORD
+Type: password
+Description: gateway keystore password: (default same as postgres)
+
+Template: pccx/KAFKA_PASSWORD
+Type: password
+Description: kafka password: (default same as postgres)
+
+Template: pccx/MAILER_PASSWORD
+Type: password
+Description: mailer password: (default same as postgres)
+
+Template: pccx/PHONEHOME_SECRET_KEY
+Type: password
+Description: phonehome secret key: (default same as postgres)
+
+Template: pccx/SECURITY_ADMIN_PASSWORD
+Type: password
+Description: security admin password: (default same as postgres password)
+
+Template: pccx/cert_algorithm
+Type: select
+Choices: ed25519, ecdsa256, ecdsa384, ecdsa512, rsa256, rsa384, rsa512
+Description: algorithm:
+
+Template: pccx/cert_common_name
+Type: string
+Description: common name:
+
+Template: pccx/cert_email
+Type: string
+Description: email address:
+
+Template: pccx/cert_fqdn
+Type: string
+Description: fully qualified domain name:
+
+Template: pccx/cert_organization
+Type: string
+Description: organization:
+
+Template: pccx/cert_locality
+Type: string
+Description: city, town, or village:
+
+Template: pccx/cert_state_or_province
+Type: string
+Description: state or province:
+
+Template: pccx/cert_country
+Type: string
+Description: country:

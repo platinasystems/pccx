@@ -2,21 +2,16 @@
 
 set -eo pipefail
 
-. /run/secrets/env
-. /run/secrets/pccx
-. /usr/libexec/pccx/rc
+. /usr/share/pccx/rc.sh
 
-wait_for_host_port $POSTGRES_HOST $POSTGRES_PORT
+pccx wait service $HOST_POSTGRES $PORT_POSTGRES
 
-service=${0##*/}
-combine_yaml /home/scripts/microservice/yaml-combiner-alpine \
-	/home/conf/default.yml \
-	/usr/lib/pccx/${service}.yml \
-	/var/lib/pccx/${service}.yml
+pccx merge /home/scripts/microservice/yaml-combiner-alpine \
+	/home/conf/default.yml /usr/share/pccx/${0##*/}.yml /run/config.yml
 
-trace_if "$APIREGISTRY_TRACE_ENABLED"
+pccx trace APIREGISTRY
 
-/usr/libexec/pccx/eureka-client &
+/usr/libexec/pccx/eureka-client /run/config.yml &
 
 sleep 3
 

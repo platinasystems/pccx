@@ -1,0 +1,3 @@
+pccx /usr/sbin
+libexec/* /usr/libexec/pccx
+share/* /usr/share/pccx

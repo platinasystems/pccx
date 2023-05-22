@@ -1,0 +1,36 @@
+#!/bin/sh
+
+set -e
+
+: ${PCCX_ETC:=/etc/pccx}
+: ${PCCX_LIBEXEC:=/usr/libexec/pccx}
+: ${PCCX_LOG:=/var/log/pccx}
+: ${PCCX_SHARE:=/usr/share/pccx}
+: ${PCCX_VAR:=/var/lib/pccx}
+
+. /usr/share/debconf/confmodule
+. ${PCCX_SHARE}/pccx.sh
+
+case "$1" in
+remove)	rm -rf $PCCX_ETC $PCCX_LOG $PCCX_VAR
+	;;
+upgrade)
+	pccx compose deconfigure $PCCX_SHARE/default.env \
+		$PCCX_ETC/docker-compose.env 
+	;;
+failed-upgrade)
+	# unwind `old-prerm upgrade` failure
+	;;
+deconfigure)
+	;;
+*)
+	echo ${0##*/}: \`$1\': unkown >&2
+	exit 1
+	;;
+esac
+
+#DEBHELPER#
+
+db_stop
+
+exit 0

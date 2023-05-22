@@ -2,30 +2,25 @@
 
 set -e
 
-. /run/secrets/env
-. /run/secrets/pccx
-. /usr/libexec/pccx/rc
+. /usr/share/pccx/rc.sh
 
-wait_for_url_pat "http://$APIREGISTRY_HOST:$APIREGISTRY_PORT" .
-wait_for_host_port $REDIS_HOST $REDIS_PORT
-wait_for_url_pat "http://$KAFKA_ADV_HOST:8081" "{}"
+pccx wait url $URI_APIREGISTRY .
+pccx wait url $URI_KAFKA "{}"
+pccx wait service $HOST_REDIS $PORT_REDIS
 
-trace_if "$MONITOR_TRACE_ENABLED"
+pccx trace MONITOR
 
-service=${0##*/}
-combine_yaml /home/scripts/microservice/yaml-combiner-alpine \
-	/home/conf/default.yml \
-	/usr/lib/pccx/${service}.yml \
-	/var/lib/pccx/${service}.yml
+pccx merge /home/scripts/microservice/yaml-combiner-alpine \
+	/home/conf/default.yml /usr/share/pccx/${0##*/}.yml /run/config.yml
 
-debug_if "$MONITOR_DEBUG_ENABLED" java \
-        -D"eureka.client.service-url.defaultZone=$APIREGISTRY_URI" \
-        -D"server.port=$MONITOR_PORT" \
+pccx exec MONITOR java \
+        -D"eureka.client.service-url.defaultZone=$URI_EUREKA" \
+        -D"server.port=$PORT_MONITOR" \
         -D"spring.application.name=monitor" \
         -D"spring.cloud.config.failFast=false" \
-        -D"spring.cloud.config.label=$MONITOR_CONFIG_BRANCH" \
+        -D"spring.cloud.config.label=$CONFIG_BRANCH_MONITOR" \
         -D"spring.config.active.on-profile=docker" \
-        -D"spring.config.location=/var/lib/pccx/${service}.yml" \
-	-D"parquet.path=/var/lib/pccx/parquet" \
+        -D"spring.config.location=/run/config.yml" \
+	-D"parquet.path=/var/lib/monitor/parquet" \
         -Xmx4096m \
 	-jar monitor-*.jar

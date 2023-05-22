@@ -1,0 +1,45 @@
+#!/bin/sh
+#
+# Convert git log into Debian format changelog.
+#
+# Tags with v1.2.3-4 format become version entries. Log entries between them
+# become changelog entries. Merge commits are not excluded, so you probably
+# have to clean up the result manually.
+
+dch_package=${1:-${PWD##*/}}
+
+case $dch_package in
+-h | --help | help)
+	echo usage: ${0##*/} '[<package>]'
+	exit 0
+	;;
+esac
+ 
+dch_entry() {
+	dch_entry_begin=$1
+	dch_entry_end=${2:-$(git rev-parse --short HEAD)}
+	dch_entry_range=$dch_entry_begin${dch_entry_begin:+..}$dch_entry_end
+	dch_entry_count=$(git rev-list --count $dch_entry_range)
+	test "$dch_entry_count" -ne 0 || return
+	eval ${dch_entry_sep:-:}
+	dch_entry_sep=echo
+	cat <<-EOF
+	$dch_package (${dch_entry_end#v}) unstable; urgency=low
+
+	$(git --no-pager log --format='  * %s' $dch_entry_range)
+
+	$(git --no-pager log --format=' -- %an <%ae>  %aD' -n 1 $dch_entry_end)
+	EOF
+}
+
+git tag --sort "-version:refname" | grep '^v\?[0-9]\+\([.-][0-9]\+\)*' | (
+	read end
+	test -z "$end" -o $(git rev-parse --short $end) = \
+		$(git rev-parse --short HEAD) ||
+		dch_entry $end HEAD
+	while read begin; do
+		dch_entry $begin $end
+		end=$begin
+	done
+	dch_entry "" $end
+)

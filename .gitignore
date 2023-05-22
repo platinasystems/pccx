@@ -4,7 +4,12 @@
 *~
 *#*#
 *.zip
-/.env
+/etc
 /data
+/debian/changelog
+/debian/debhelper-build-stamp
+/debian/*.debhelper
+/debian/files
+/debian/pccx/
+/debian/README
 /log
-/secret

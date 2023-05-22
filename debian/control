@@ -1,0 +1,19 @@
+Source: pccx
+Section: net
+Priority: optional
+Maintainer: Tom Grennan <tgrennan@platinasystems.com>
+Build-Depends: debhelper (>=10)
+Standards-Version: 3.9.8
+Homepage: https://platinasystems.com
+Vcs-Browser: https://github.com/platinasystems/pccx
+Vcs-Git: https://github.com/platinasystems/pccx.git
+
+Package: pccx
+Architecture: all
+Multi-Arch: foreign
+Depends: ${misc:Depends},
+	docker-compose (>= 1.21.0),
+	openssh-client,
+	whiptail | dialog
+Description: Compose Platina Command Center eXchange
+ FIXME

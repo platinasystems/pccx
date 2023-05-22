@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
+
 set -Eeo pipefail
 # TODO swap to -Eeuo pipefail above (after handling all potentially-unset variables)
 
-. /run/secrets/env
-. /run/secrets/pccx
-. /usr/libexec/pccx/rc
+. /usr/share/pccx/rc.sh
 
-trace_if "$POSTGRES_TRACE_ENABLED"
+pccx trace POSTGRES
 
 : ${PGDATA:=/var/lib/postgresql/data}
 
@@ -23,9 +22,9 @@ chown -R postgres:postgres \
 	/var/lib/postgresql/logs
 
 # usage: file_env VAR [DEFAULT]
-#    ie: file_env 'XYZ_DB_PASSWORD' 'example'
-# (will allow for "$XYZ_DB_PASSWORD_FILE" to fill in the value of
-#  "$XYZ_DB_PASSWORD" from a file, especially for Docker's secrets feature)
+#    ie: file_env 'DB_PASSWORD_XYZ' 'example'
+# (will allow for "$DB_PASSWORD_XYZ_FILE" to fill in the value of
+#  "$DB_PASSWORD_XYZ" from a file, especially for Docker's secrets feature)
 file_env() {
 	local var="$1"
 	local fileVar="${var}_FILE"
@@ -198,18 +197,18 @@ docker_process_init_files() {
 #    ie: docker_process_sql <my-file.sql
 docker_process_sql() {
 	local query_runner=( psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --no-password )
-	if [ -n "$POSTGRES_DB" ]; then
-		query_runner+=( --dbname "$POSTGRES_DB" )
+	if [ -n "$DB_NAME_POSTGRES" ]; then
+		query_runner+=( --dbname "$DB_NAME_POSTGRES" )
 	fi
 
 	"${query_runner[@]}" "$@"
 }
 
 # create initial database
-# uses environment variables for input: POSTGRES_DB
+# uses environment variables for input: DB_NAME_POSTGRES
 docker_setup_db() {
-	if [ "$POSTGRES_DB" != 'postgres' ]; then
-		POSTGRES_DB= docker_process_sql --dbname postgres --set db="$POSTGRES_DB" <<-'EOSQL'
+	if [ "$DB_NAME_POSTGRES" != 'postgres' ]; then
+		DB_NAME_POSTGRES= docker_process_sql --dbname postgres --set db="$DB_NAME_POSTGRES" <<-'EOSQL'
 			CREATE DATABASE :"db" ;
 		EOSQL
 		echo
@@ -222,7 +221,7 @@ docker_setup_env() {
 	file_env 'POSTGRES_PASSWORD'
 
 	file_env 'POSTGRES_USER' 'postgres'
-	file_env 'POSTGRES_DB' "$POSTGRES_USER"
+	file_env 'DB_NAME_POSTGRES' "$POSTGRES_USER"
 	file_env 'POSTGRES_INITDB_ARGS'
 	# default authentication method is md5
 	: "${POSTGRES_HOST_AUTH_METHOD:=md5}"
