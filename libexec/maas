@@ -14,16 +14,16 @@ pccx trace MAAS
 # FIXME integrate this
 /usr/bin/swagger.sh
 
-PGPASSWORD="$POSTGRES_PASSWORD" psql \
+PGPASSWORD="$postgres_password" psql \
         -U "$POSTGRES_USER" \
         -h "$HOST_POSTGRES" \
         -e "$DB_NAME_POSTGRES" \
         -f /home/scripts/db/init.sql \
         -v "role=$DB_USER_MAAS" \
-        -v "passwd=$DB_PASSWORD_MAAS" \
+        -v "passwd=$maas_db_password" \
         -v "db=$DB_NAME_MAAS" \
         -v "dbschema=$DB_SCHEMA_MAAS"
-PGPASSWORD="$DB_PASSWORD_MAAS" psql \
+PGPASSWORD="$maas_db_password" psql \
         -U "$DB_USER_MAAS" \
         -h "$HOST_POSTGRES" \
         -e "$DB_NAME_MAAS" \
@@ -37,9 +37,9 @@ pccx exec MAAS /home/maas \
 	--dbHost "$HOST_POSTGRES" \
 	--dbName "$DB_NAME_MAAS" \
 	--dbUsername "$DB_USER_MAAS" \
-	--dbPassword "$DB_PASSWORD_MAAS" \
+	--dbPassword "$maas_db_password" \
 	--phAccessKey "$PHONEHOME_ACCESS_KEY" \
-	--phSecretKey "$PHONEHOME_SECRET_KEY" \
+	--phSecretKey "$phonehome_secret_key" \
 	--useHostnameAsAddress \
 	--useHostnameAsName \
 	--registryAddress "$HOST_APIREGISTRY" \

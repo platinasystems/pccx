@@ -14,12 +14,10 @@ pccx_file_create() {
 }
 
 pccx_file_filter() {
-	: ${1:?missing <name>}
-	exec 8<>$1
+	pccx_file_filter_name=${1:?missing <name>}
 	shift
-	t=$(mktemp); exec 9<>"$t"; rm "$t"
-	eval $@ <&8 >&9
-	exec 8<>/dev/fd/8 9<>/dev/fd/9
-	cat <&9 >&8
+	t=$(mktemp); exec 8<$t 9>$t; rm $t
+	<$pccx_file_filter_name eval $@ >&9
+	<&8 cat >$pccx_file_filter_name
 	exec 8>&- 9>&-
 }

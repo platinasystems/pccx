@@ -8,10 +8,6 @@ pccx wait service $HOST_GATEWAY $PORT_GATEWAY
 
 pccx trace PCCUI
 
-mkdir -p /usr/local/apache2/conf
-ln -sf /etc/pccx/cert.pem /usr/local/apache2/conf/server.crt
-ln -sf /etc/pccx/key.pem /usr/local/apache2/conf/server.key
-
 /usr/local/apache2/scripts/microservice/app-launcher \
 	--overrideSystemProperties \
 	--configProfile docker \

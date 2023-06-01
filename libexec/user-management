@@ -5,7 +5,7 @@ set -e
 . /usr/share/pccx/rc.sh
 
 export MINIO_ROOT_USER
-export MINIO_ROOT_PASSWORD
+export MINIO_ROOT_PASSWORD=$minio_password
 export MINIO_VOLUMES
 export MINIO_PORT
 export MINIO_ITERATIONS
@@ -27,6 +27,6 @@ pccx exec USERMANAGEMENT java \
 	-D"spring.cloud.config.failFast=false" \
 	-D"spring.config.active.on-profile=docker" \
 	-D"spring.config.location=/run/config.yml" \
-	-D"spring.datasource.password=$DB_PASSWORD_USERMANAGEMENT" \
+	-D"spring.datasource.password=$usermanagement_db_password" \
 	-D"spring.datasource.username=$DB_USER_USERMANAGEMENT" \
 	-jar user-management-*.jar

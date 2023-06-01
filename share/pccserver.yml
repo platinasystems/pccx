@@ -384,7 +384,7 @@ db:
 
 ansible:
   delegatorUser: pcc
-  sshPrivateKeyFile: /etc/pccx/id_rsa
+  sshPrivateKeyFile: /run/secrets/key
   sshUser: pcc
   dir: /home/ansible/infra
   inventory: /home/ansible/infra/inventory/sites/hosts.yml
@@ -408,9 +408,9 @@ apps:
 
 resources:
 - name: id_rsa_ansible
-  path: /etc/pccx/id_rsa
+  path: /run/secrets/key
 - name: id_rsa_ansible_pub
-  path: /etc/pccx/id_rsa.pub
+  path: /etc/pccx/ssh.pub
 
 storage:
   protocol: http

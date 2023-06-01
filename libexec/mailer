@@ -14,7 +14,7 @@ pccx exec MAILER /home/go-microservice-mailer \
 	--configUri "/run/config.yml" \
 	--configBranch "$CONFIG_BRANCH_MAILER" \
 	--phAccessKey "$PHONEHOME_ACCESS_KEY" \
-	--phSecretKey "$PHONEHOME_SECRET_KEY" \
+	--phSecretKey "$phonehome_secret_key" \
 	--useHostnameAsAddress \
 	--useHostnameAsName \
 	--registryAddress "$HOST_APIREGISTRY" \

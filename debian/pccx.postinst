@@ -7,19 +7,20 @@ set -e
 : ${PCCX_LOG:=/var/log/pccx}
 : ${PCCX_SHARE:=/usr/share/pccx}
 : ${PCCX_VAR:=/var/lib/pccx}
+: ${PCCX_KEY:=/run/secrets/key}
 
 . /usr/share/debconf/confmodule
 . ${PCCX_SHARE}/pccx.sh
 
 case "$1" in
 configure)
-	test -r $PCCX_ETC/cert.pem -a -r $PCCX_ETC/key.pem ||
-		pccx cert debconf $PCCX_ETC/cert.pem $PCCX_ETC/key.pem
-	test -f $PCCX_ETC/id_rsa ||
-		pccx rsa gen $PCCX_ETC/id_rsa
-	pccx compose configure $PCCX_SHARE/default.env \
-		$PCCX_ETC/docker-compose.env 
-	pccx container debconf $PCCX_ETC/pccx.env 
+	mkdir -p $PCCX_ETC $PCCX_LOG $PCCX_VAR
+	test -e $PCCX_KEY || pccx pkey gen
+	pccx passwords debconf
+	test -e $PCCX_ETC/pub.pem || pccx pkey pubout
+	test -e $PCCX_ETC/ssh.pub || pccx pkey tossh
+	test -e $PCCX_ETC/cert.pem || pccx cert debconf
+	pccx configure compose
 	;;
 abort-upgrade)
 	# unwind `new-prerm failed-upgrade` failure to
@@ -32,7 +33,7 @@ abort-deconfigure)
 	# unwind `deconfigured's-prerm deconfigure` failure
 	;;
 *)
-	echo ${0##*/}: \`$1\': unkown >&2
+	echo ${0##*/}: \`$1\': unknown >&2
 	exit 1
 	;;
 esac

@@ -38,7 +38,7 @@ db:
 
 ansible:
   delegatorUser: pcc
-  sshPrivateKeyFile: /root/.ssh/id_rsa_ansible
+  sshPrivateKeyFile: /run/secrets/key
 
 maas:
   whitelist:

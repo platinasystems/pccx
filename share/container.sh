@@ -112,10 +112,6 @@ pccx_container_update() {
 	test -d ${1%/*} || mkdir -p -m 0660 ${1%/*}
 	test -w $1 || pccx file create 0664 $1
 
-	case $(uname -m) in
-	arm64 ) : ${JAVA_OPTS:=-Djdk.lang.Process.launchMechanism=vfork};;
-	esac
-
 	for pccx_name in \
 		DB_PASSWORD_KEYMANAGER \
 		DB_PASSWORD_MAAS \
@@ -127,7 +123,6 @@ pccx_container_update() {
 		DB_PASSWORD_SECURITY \
 		DB_PASSWORD_USERMANAGEMENT \
 		GATEWAY_KEYSTORE_PASSWORD \
-		JAVA_OPTS \
 		KAFKA_PASSWORD \
 		MAILER_PASSWORD \
 		MINIO_ROOT_PASSWORD \

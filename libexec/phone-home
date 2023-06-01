@@ -4,16 +4,16 @@ set -e
 
 . /usr/share/pccx/rc.sh
 
+pccx wait postgres
+pccx wait url $URI_APIREGISTRY .
+pccx wait url $URI_MINIO "Access Denied"
+
 export MINIO_ROOT_USER
-export MINIO_ROOT_PASSWORD
+export MINIO_ROOT_PASSWORD=$minio_password
 export MINIO_VOLUMES
 export MINIO_PORT
 export MINIO_ITERATIONS
 export MINIO_PERIOD_SECS
-
-pccx wait postgres
-pccx wait url $URI_APIREGISTRY .
-pccx wait url $URI_MINIO "Access Denied"
 
 pccx trace PHONEHOME
 
@@ -26,21 +26,21 @@ test -f /home/conf/storage.yml ||
 	destinationHost: platinadownload.auctacognitio.com
 	destinationPort: 9001
 	destinationBucket: phone-home
-	accessKey: ${PHONEHOME_ACCESS_KEY}
-	secretKey: "${PHONEHOME_SECRET_KEY}"
+	accessKey: $PHONEHOME_ACCESS_KEY
+	secretKey: "$phonehome_secret_key"
 	dareKey: ""
 	EOF
 
-PGPASSWORD="$POSTGRES_PASSWORD" psql \
+PGPASSWORD="$postgres_password" psql \
         -U "$POSTGRES_USER" \
         -h "$HOST_POSTGRES" \
         -e "$DB_NAME_POSTGRES" \
         -f /home/scripts/db/init.sql \
         -v "role=$DB_USER_PHONEHOME" \
-        -v "passwd=$DB_PASSWORD_PHONEHOME" \
+        -v "passwd=$phonehome_db_password" \
         -v "db=$DB_NAME_PHONEHOME" \
         -v "dbschema=$DB_SCHEMA_PHONEHOME"
-PGPASSWORD="$DB_PASSWORD_PHONEHOME" psql \
+PGPASSWORD="$phonehome_db_password" psql \
         -U "$DB_USER_PHONEHOME" \
         -h "$HOST_POSTGRES" \
         -e "$DB_NAME_PHONEHOME" \
@@ -52,7 +52,7 @@ pccx exec PHONEHOME /home/phone-home \
 	--dbHost "$HOST_POSTGRES" \
 	--dbName "$DB_NAME_PHONEHOME" \
 	--dbUsername "$DB_USER_PHONEHOME" \
-	--dbPassword "$DB_PASSWORD_PHONEHOME" \
+	--dbPassword "$phonehome_db_password" \
 	--configUri "/run/config.yml" \
 	--customer "$PHONEHOME_CUSTOMER" \
 	--services "platina-monitor,key-manager,monitor,registry,maas,node-exporter,mailer,user-management,platina-executor,cadvisor,gateway,pccserver,security" \

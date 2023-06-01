@@ -14,21 +14,21 @@ pccx merge /home/scripts/microservice/yaml-combiner \
 
 pccx trace PLATINAMONITOR
 
-PGPASSWORD="$POSTGRES_PASSWORD" psql \
+PGPASSWORD="$postgres_password" psql \
         -U "$POSTGRES_USER" \
         -h "$HOST_POSTGRES" \
         -e "$DB_NAME_POSTGRES" \
         -f /home/scripts/db/init.sql \
         -v "role=$DB_USER_PLATINAMONITOR" \
-        -v "passwd=$DB_PASSWORD_PLATINAMONITOR" \
+        -v "passwd=$platinamonitor_db_password" \
         -v "db=$DB_NAME_PLATINAMONITOR" \
         -v "dbschema=$DB_SCHEMA_PLATINAMONITOR"
-PGPASSWORD="$DB_PASSWORD_PLATINAMONITOR" psql \
+PGPASSWORD="$platinamonitor_db_password" psql \
         -U "$DB_USER_PLATINAMONITOR" \
         -h "$HOST_POSTGRES" \
         -e "$DB_NAME_PLATINAMONITOR" \
         -f /home/scripts/db/schema.sql
-PGPASSWORD="$POSTGRES_PASSWORD" psql \
+PGPASSWORD="$postgres_password" psql \
         -U "$POSTGRES_USER" \
         -h "$HOST_POSTGRES" \
         -e "$DB_NAME_PLATINAMONITOR" \
@@ -42,9 +42,9 @@ pccx exec PLATINAMONITOR /home/platina-monitor \
 	--dbHost "$HOST_POSTGRES" \
 	--dbName "$DB_NAME_PLATINAMONITOR" \
 	--dbUsername "$DB_USER_PLATINAMONITOR" \
-	--dbPassword "$DB_PASSWORD_PLATINAMONITOR" \
+	--dbPassword "$platinamonitor_db_password" \
 	--phAccessKey "$PHONEHOME_ACCESS_KEY" \
-	--phSecretKey "$PHONEHOME_SECRET_KEY" \
+	--phSecretKey "$phonehome_secret_key" \
 	--useHostnameAsAddress \
 	--useHostnameAsName \
 	--registryAddress "$HOST_APIREGISTRY" \

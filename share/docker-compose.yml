@@ -1,8 +1,11 @@
 version: '3.4'
 
+x-java-environment: &java-environment
+  JAVA_OPTS: ${JAVA_OPTS}
+
 x-tlsx-environment: &tlsx-environment
   TLSX_CERT_FILE: /etc/pccx/cert.pem
-  TLSX_KEY_FILE: /etc/pccx/key.pem
+  TLSX_KEY_FILE: /run/secrets/key
 
 x-volumes:
 - &pccx-etc ${PCCX_ETC}:/etc/pccx:ro
@@ -10,16 +13,23 @@ x-volumes:
 - &pccx-share ${PCCX_SHARE}:/usr/share/pccx:ro
 - &prometheus-rules ${PCCX_VAR}/prometheus-rules:/home/prometheus/rules/
 
+secrets:
+  key:
+    file: ${PCCX_KEY}
+  fixme:
+    file: ${PCCX_FIXME}
+
 services:
   tlsx:
     container_name: tlsx
-    image: ${IMAGE_TLSX}
+    image: ko.local/tlsx
     restart: ${RESTART}
     ports:
     - ${PORT_TLSX}:8003
     environment:
       <<: *tlsx-environment
       TLSX_SUBSCRIBERS_FILE: /run/tlsx/subscribers
+    secrets: [ key ]
     volumes:
     - *pccx-etc
     - ${PCCX_VAR}/tlsx:/run/tlsx
@@ -32,7 +42,7 @@ services:
   tap:
     container_name: tap
     depends_on: [ tlsx ]
-    image: ${IMAGE_TLSX}
+    image: ko.local/tlsx
     restart: ${RESTART}
     networks:
       default:
@@ -52,6 +62,7 @@ services:
     user: "0:0"
     environment:
       <<: *tlsx-environment
+    secrets: [ key ]
     volumes:
     - *pccx-etc
     command:
@@ -70,6 +81,7 @@ services:
     network_mode: "service:tap"
     privileged: true
     user: "0:0"
+    secrets: [ key ]
     tmpfs: /run
     volumes:
     - *pccx-etc
@@ -100,6 +112,7 @@ services:
     - NET_ADMIN
     - SYS_ADMIN
     devices: [ /dev/net/tun ]
+    secrets: [ key ]
     tmpfs: /run
     volumes:
     - *pccx-etc
@@ -137,6 +150,7 @@ services:
         - postgres-db
     expose:
     - ${PORT_POSTGRES}
+    secrets: [ key, fixme ]
     tmpfs: /run
     volumes:
     - *pccx-etc
@@ -189,6 +203,7 @@ services:
     expose:
     - ${PORT_MINIO}
     - ${PORT_MINIO_CONSOLE}
+    secrets: [ key, fixme ]
     volumes:
     - *pccx-etc
     - *pccx-libexec
@@ -317,6 +332,9 @@ services:
     ports: [ "443:9999" ]
     expose:
     - ${PORT_GATEWAY}
+    environment:
+      <<: *java-environment
+    secrets: [ key ]
     tmpfs: /run
     volumes:
     - *pccx-etc
@@ -324,6 +342,8 @@ services:
     - *pccx-share
     - ${PCCX_VAR}/gateway:/var/lib/gateway
     - ${PCCX_LOG}/gateway:/var/log
+    - ${PCCX_ETC}/cert.pem:/home/certs/server.crt:ro
+    - ${PCCX_KEY}:/home/certs/server.key:ro
     entrypoint: /usr/libexec/pccx/gateway
 
   mailer:
@@ -336,6 +356,7 @@ services:
     expose:
     - ${PORT_MAILER}
     cap_add: [ SYS_PTRACE ]
+    secrets: [ key, fixme ]
     tmpfs: /run
     volumes:
     - *pccx-etc
@@ -354,6 +375,9 @@ services:
     networks: [ backend ]
     expose:
     - ${PORT_USERMANAGEMENT}
+    environment:
+      <<: *java-environment
+    secrets: [ key, fixme ]
     tmpfs: /run
     volumes:
     - *pccx-etc
@@ -372,6 +396,9 @@ services:
     networks: [ backend ]
     expose:
     - ${PORT_SECURITY}
+    environment:
+      <<: *java-environment
+    secrets: [ key, fixme ]
     tmpfs: /run
     volumes:
     - *pccx-etc
@@ -393,6 +420,9 @@ services:
     networks: [ backend ]
     expose: 
     - ${PORT_KEYMANAGER}
+    environment:
+      <<: *java-environment
+    secrets: [ key ]
     tmpfs: /run
     volumes:
     - *pccx-etc
@@ -400,6 +430,8 @@ services:
     - *pccx-share
     - ${PCCX_VAR}/key-manager:/var/lib/key-manager
     - ${PCCX_LOG}/key-manager:/var/log
+    - ${PCCX_ETC}/ssh.pub:/home/keys/system.pub:ro
+    - ${PCCX_KEY}:/home/keys/system.pem:ro
     entrypoint: /usr/libexec/pccx/key-manager
 
   monitor:
@@ -411,6 +443,8 @@ services:
     networks: [ backend ]
     expose:
     - ${PORT_MONITOR}
+    environment:
+      <<: *java-environment
     tmpfs: /run
     volumes:
     - *pccx-etc
@@ -430,6 +464,7 @@ services:
     expose:
     - ${PORT_PLATINAEXECUTOR}
     privileged: true
+    secrets: [ key ]
     tmpfs: /run
     volumes:
     - *pccx-etc
@@ -462,6 +497,7 @@ services:
     networks: [ backend ]
     expose:
     - ${PORT_PLATINAMONITOR}
+    secrets: [ key ]
     tmpfs: /run
     volumes:
     - *pccx-etc
@@ -483,6 +519,7 @@ services:
     - ${PORT_MAAS}
     privileged: true
     cap_add: [ SYS_PTRACE ]
+    secrets: [ key ]
     tmpfs: /run
     volumes:
     - *pccx-etc
@@ -501,6 +538,7 @@ services:
     networks: [ backend ]
     expose: [ 8383, 9000 ]
     cap_add: [ SYS_PTRACE ]
+    secrets: [ key ]
     tmpfs: /run
     volumes:
     - *pccx-etc
@@ -525,6 +563,8 @@ services:
     - *pccx-share
     - ${PCCX_VAR}/pcc-ui:/var/lib/pcc-ui
     - ${PCCX_LOG}/pcc-ui:/var/log
+    - ${PCCX_ETC}/cert.pem:/usr/local/apache2/conf/server.crt:ro
+    - ${PCCX_KEY}:/usr/local/apache2/conf/server.key:ro
     entrypoint: /usr/libexec/pccx/pcc-ui
 
 networks:

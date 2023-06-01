@@ -21,9 +21,9 @@ pccx_wait_postgres() {
 	: ${HOST_POSTGRES:?unspecifed}
 	: ${PORT_POSTGRES:?unspecifed}
 	: ${POSTGRES_USER:?unspecifed}
-	: ${POSTGRES_PASSWORD:?unspecifed}
+	: ${postgres_password:?unspecifed}
 	wait_start=$(date +%s)
-	until (PGPASSWORD="$POSTGRES_PASSWORD" \
+	until (PGPASSWORD="$postgres_password" \
 		PGCONNECT_TIMEOUT=$PGCONNECT_TIMEOUT \
 		psql -h $HOST_POSTGRES -p $PORT_POSTGRES -U $POSTGRES_USER \
 		-c "select 1" >/dev/null 2>&1)

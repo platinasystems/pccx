@@ -13,30 +13,26 @@ pccx merge /home/scripts/microservice/yaml-combiner-alpine \
 
 pccx trace KEYMANAGER
 
-mkdir -p /home/keys
-ln -sf /etc/pccx/id_rsa.pub /home/keys/system.pub
-ln -sf /etc/pccx/id_rsa /home/keys/system.pem
-
 # FIXME integrate this...
 /home/scripts/microservice/initConfGenerator.sh -o conf/adminKey.yml \
 	-a "$KEYMANAGER_ADMIN"
 sleep 5
 
-PGPASSWORD="$POSTGRES_PASSWORD" psql \
+PGPASSWORD="$postgres_password" psql \
         -U "$POSTGRES_USER" \
         -h "$HOST_POSTGRES" \
         -e "$DB_NAME_POSTGRES" \
         -f /home/scripts/db/init.sql \
         -v "role=$DB_USER_KEYMANAGER" \
-        -v "passwd=$DB_PASSWORD_KEYMANAGER" \
+        -v "passwd=$keymanager_db_password" \
         -v "db=$DB_NAME_KEYMANAGER" \
         -v "dbschema=$DB_SCHEMA_KEYMANAGER"
-PGPASSWORD="$DB_PASSWORD_KEYMANAGER" psql \
+PGPASSWORD="$keymanager_db_password" psql \
         -U "$DB_USER_KEYMANAGER" \
         -h "$HOST_POSTGRES" \
         -e "$DB_NAME_KEYMANAGER" \
         -f /home/scripts/db/schema.sql
-PGPASSWORD="$POSTGRES_PASSWORD" psql \
+PGPASSWORD="$postgres_password" psql \
         -U "$POSTGRES_USER" \
         -h "$HOST_POSTGRES" \
         -e "$DB_NAME_KEYMANAGER" \
@@ -44,7 +40,7 @@ PGPASSWORD="$POSTGRES_PASSWORD" psql \
 	-v "pccdbHost=$HOST_POSTGRES" \
 	-v "pccdbPort=$PORT_POSTGRES" \
 	-v "pccdbUser=$DB_USER_PCC" \
-	-v "pccdbPassword=$DB_PASSWORD_PCC" \
+	-v "pccdbPassword=$pcc_db_password" \
 	-v "dbUser=$DB_USER_KEYMANAGER" \
 	-v "adminUser=$POSTGRES_USER" \
         -f /home/scripts/db/post-init.sql
@@ -53,7 +49,7 @@ pccx exec KEYMANAGER java \
 	-D"spring.profiles.active=docker" \
 	-D"spring.datasource.url=jdbc:postgresql://$HOST_POSTGRES/$DB_NAME_KEYMANAGER" \
 	-D"spring.datasource.username=$DB_USER_KEYMANAGER" \
-	-D"spring.datasource.password=$DB_PASSWORD_KEYMANAGER" \
+	-D"spring.datasource.password=$keymanager_db_password" \
 	-D"spring.cloud.config.failFast=false" \
 	-D"eureka.client.service-url.defaultZone=$URI_EUREKA" \
 	-D"spring.config.location=/run/config.yml" \

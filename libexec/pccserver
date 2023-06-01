@@ -4,19 +4,19 @@ set -e
 
 . /usr/share/pccx/rc.sh
 
-export MINIO_ROOT_USER
-export MINIO_ROOT_PASSWORD
-export MINIO_VOLUMES
-export MINIO_PORT
-export MINIO_ITERATIONS
-export MINIO_PERIOD_SECS
-
 pccx wait postgres
 pccx wait url $URI_APIREGISTRY .
 pccx wait url $URI_MINIO "Access Denied"
 pccx wait url $URI_KAFKA "{}"
 pccx wait service $HOST_PLATINAEXECUTOR $PORT_PLATINAEXECUTOR
 pccx wait service $HOST_MAAS $PORT_MAAS
+
+export MINIO_ROOT_USER
+export MINIO_ROOT_PASSWORD=$minio_password
+export MINIO_VOLUMES
+export MINIO_PORT
+export MINIO_ITERATIONS
+export MINIO_PERIOD_SECS
 
 pccx trace PCC
 
@@ -30,21 +30,21 @@ rsync -rt /home/new_kubespray/ /home/kubespray/
 test -z "$HOST_PCCUI_IP" -o "$HOST_PCCUI_IP" = "0.0.0.0" ||
         sed -i "s/localhost/${HOST_PCCUI_IP}/g" /home/swagger/swagger.json
 
-PGPASSWORD="$POSTGRES_PASSWORD" psql \
+PGPASSWORD="$postgres_password" psql \
         -U "$POSTGRES_USER" \
         -h "$HOST_POSTGRES" \
         -e "$DB_NAME_POSTGRES" \
         -f /home/scripts/db/init.sql \
         -v "role=$DB_USER_PCC" \
-        -v "passwd=$DB_PASSWORD_PCC" \
+        -v "passwd=$pcc_db_password" \
         -v "db=$DB_NAME_PCC" \
         -v "dbschema=$DB_SCHEMA_PCC"
-PGPASSWORD="$DB_PASSWORD_PCC" psql \
+PGPASSWORD="$pcc_db_password" psql \
         -U "$DB_USER_PCC" \
         -h "$HOST_POSTGRES" \
         -e "$DB_NAME_PCC" \
         -f /home/scripts/db/schema.sql
-PGPASSWORD="$POSTGRES_PASSWORD" psql \
+PGPASSWORD="$postgres_password" psql \
         -U "$POSTGRES_USER" \
         -h "$HOST_POSTGRES" \
         -e "$DB_NAME_PCC" \
@@ -56,10 +56,10 @@ pccx exec PCC /home/pccserver \
         --dbHost "$HOST_POSTGRES" \
         --dbName "$DB_NAME_PCC" \
         --dbUsername "$DB_USER_PCC" \
-        --dbPassword "$DB_PASSWORD_PCC" \
+        --dbPassword "$pcc_db_password" \
         --configUri /run/config.yml \
         --phAccessKey "$PHONEHOME_ACCESS_KEY" \
-        --phSecretKey "$PHONEHOME_SECRET_KEY" \
+        --phSecretKey "$phonehome_secret_key" \
         --useHostnameAsAddress \
         --useHostnameAsName \
         --registryAddress registry \

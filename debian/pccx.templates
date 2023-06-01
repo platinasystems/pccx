@@ -1,74 +1,69 @@
-Template: pccx/MINIO_ROOT_PASSWORD
+Template: pccx/minio_root_password
 Type: password
 Default: miniominio
-Description: minio password: (default is "miniominio")
+Description: minio password: (default "miniominio")
 
-Template: pccx/POSTGRES_PASSWORD
+Template: pccx/postgres_password
 Type: password
 Description: postgres admin password:
 
-Template: pccx/DB_PASSWORD_KEYMANAGER
+Template: pccx/keymanager_db_password
 Type: password
-Description: key-manager table password: (default same as postgres)
+Description: key-manager table password: (default <postgres password>)
 
-Template: pccx/DB_PASSWORD_MAAS
+Template: pccx/maas_db_password
 Type: password
-Description: maas table password: (default same as postgres)
+Description: maas table password: (default <postgres password>)
 
-Template: pccx/DB_PASSWORD_PCC
+Template: pccx/pcc_db_password
 Type: password
-Description: pcc table password: (default same as postgres)
+Description: pcc table password: (default <postgres password>)
 
-Template: pccx/DB_PASSWORD_PHONEHOME
+Template: pccx/phonehome_db_password
 Type: password
-Description: phonehome table password: (default same as postgres)
+Description: phonehome table password: (default <postgres password>)
 
-Template: pccx/DB_PASSWORD_PLATINAEXECUTOR
+Template: pccx/platinaexecutor_db_password
 Type: password
-Description: platin-executor table password: (default same as postgres)
+Description: platin-executor table password: (default <postgres password>)
 
-Template: pccx/DB_PASSWORD_PLATINAMONITOR
+Template: pccx/platinamonitor_db_password
 Type: password
-Description: platina-monitor table password: (default same as postgres)
+Description: platina-monitor table password: (default <postgres password>)
 
-Template: pccx/DB_PASSWORD_POSTGRES
+Template: pccx/postgres_db_password
 Type: password
-Description: admin table password: (default same as postgres)
+Description: admin table password: (default <postgres password>)
 
-Template: pccx/DB_PASSWORD_SECURITY
+Template: pccx/security_db_password
 Type: password
-Description: security table password: (default same as postgres)
+Description: security table password: (default <postgres password>)
 
-Template: pccx/DB_PASSWORD_USERMANAGEMENT
+Template: pccx/usermanagement_db_password
 Type: password
-Description: user-management table password: (default same as postgres)
+Description: user-management table password: (default <postgres password>)
 
-Template: pccx/GATEWAY_KEYSTORE_PASSWORD
+Template: pccx/gateway_keystore_password
 Type: password
-Description: gateway keystore password: (default same as postgres)
+Description: gateway keystore password: (default <postgres password>)
 
-Template: pccx/KAFKA_PASSWORD
+Template: pccx/kafka_password
 Type: password
-Description: kafka password: (default same as postgres)
+Description: kafka password: (default <postgres password>)
 
-Template: pccx/MAILER_PASSWORD
+Template: pccx/mailer_password
 Type: password
-Description: mailer password: (default same as postgres)
+Description: mailer password: (default <postgres password>)
 
-Template: pccx/PHONEHOME_SECRET_KEY
+Template: pccx/phonehome_secret_key
 Type: password
-Description: phonehome secret key: (default same as postgres)
+Description: phonehome secret key: (default <postgres password>)
 
-Template: pccx/SECURITY_ADMIN_PASSWORD
+Template: pccx/security_admin_password
 Type: password
-Description: security admin password: (default same as postgres password)
+Description: security admin password: (default <postgres password>)
 
-Template: pccx/cert_algorithm
-Type: select
-Choices: ed25519, ecdsa256, ecdsa384, ecdsa512, rsa256, rsa384, rsa512
-Description: algorithm:
-
-Template: pccx/cert_common_name
+Template: pccx/cert_CN
 Type: string
 Description: common name:
 
@@ -80,18 +75,22 @@ Template: pccx/cert_fqdn
 Type: string
 Description: fully qualified domain name:
 
-Template: pccx/cert_organization
+Template: pccx/cert_O
 Type: string
 Description: organization:
 
-Template: pccx/cert_locality
+Template: pccx/cert_OU
+Type: string
+Description: organization unit:
+
+Template: pccx/cert_L
 Type: string
 Description: city, town, or village:
 
-Template: pccx/cert_state_or_province
+Template: pccx/cert_ST
 Type: string
 Description: state or province:
 
-Template: pccx/cert_country
+Template: pccx/cert_C
 Type: string
 Description: country:

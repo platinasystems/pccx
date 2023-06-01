@@ -5,6 +5,7 @@
 *#*#
 *.zip
 /etc
+/fixme.txt
 /data
 /debian/changelog
 /debian/debhelper-build-stamp
@@ -12,4 +13,5 @@
 /debian/files
 /debian/pccx/
 /debian/README
+/key.pem
 /log

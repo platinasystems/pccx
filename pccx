@@ -10,71 +10,82 @@ set -e
 : ${XDG_DATA_HOME:=$HOME/.local/share}
 : ${XDG_STATE_HOME:=$HOME/.local/state}
 
-if test -r ./etc/docker-compose.env; then
-	eval $(grep '^PCCX_\w\+=' ./etc/docker-compose.env)
-elif test -r $XDG_CONFIG_HOME/pccx/docker-compose.env; then
-	eval $(grep '^PCCX_\w\+=' $XDG_CONFIG_HOME/pccx/docker-compose.env)
-elif test -r /etc/pccx/docker-compose.env; then
-	eval $(grep '^PCCX_\w\+=' /etc/pccx/docker-compose.env)
-else
-	case $PCCX in
-	/usr/sbin/pccx)
-		PCCX_LIBEXEC="/usr/libexec/pccx"
-		PCCX_SHARE="/usr/share/pccx"
-		if test $UID -eq 0; then
-			PCCX_ETC="/etc/pccx"
-			PCCX_LOG="/var/log/pccx"
-			PCCX_VAR="/var/lib/pccx"
-		fi
-		;;
-	/opt/pccx/sbin/pccx)
-		PCCX_LIBEXEC="/opt/pccx/libexec"
-		PCCX_SHARE="/opt/pccx/share"
-		if test $UID -eq 0; then
-			PCCX_ETC="/etc/opt/pccx"
-			PCCX_LOG="/var/log/pccx"
-			PCCX_VAR="/var/opt/pccx"
-		fi
-		;;
-	/opt/homebrew/Cellar/pccx/*/sbin/pccx)
-		pccx_homebrew_sbin="${PCCX%/*}"
-		pccx_homebrew_ver="${pccx_homebrew_sbin%/*}"
-		PCCX_LIBEXEC="$pccx_homebrew_ver/libexec"
-		PCCX_SHARE="$pccx_homebrew_ver/share"
-		if test $UID -eq 0; then
-			PCCX_ETC="$pccx_homebrew_ver/etc"
-			PCCX_LOG="/opt/homebrew/var/log/pccx"
-			PCCX_VAR="/opt/homebrew/var/lib/pccx"
-		fi
-		;;
-	/usr/local/sbin/pccx)
-		PCCX_LIBEXEC="/usr/local/libexec/pccx"
-		PCCX_SHARE="/usr/local/share/pccx"
-		if test $UID -eq 0; then
-			PCCX_ETC="/etc/pccx"
-			PCCX_LOG="/var/log/pccx"
-			PCCX_VAR="/var/local/pccx"
-		fi
-		;;
-	$HOME/.local/bin)
-		PCCX_LIBEXEC="$HOME/.local/libexec/pccx"
-		PCCX_SHARE="$XDG_DATA_HOME/pccx"
-		;;
-	*)
-		PCCX_ETC="./etc"
-		PCCX_LIBEXEC="./libexec"
-		PCCX_LOG="./log"
-		PCCX_SHARE="./share"
-		PCCX_VAR="./data"
-		;;
-	esac
-fi
+case $PCCX in
+/usr/sbin/pccx)
+	PCCX_LIBEXEC="/usr/libexec/pccx"
+	PCCX_SHARE="/usr/share/pccx"
+	if test $UID -eq 0; then
+		PCCX_ETC="/etc/pccx"
+		PCCX_LOG="/var/log/pccx"
+		PCCX_VAR="/var/lib/pccx"
+	fi
+	;;
+/opt/pccx/sbin/pccx)
+	PCCX_LIBEXEC="/opt/pccx/libexec"
+	PCCX_SHARE="/opt/pccx/share"
+	if test $UID -eq 0; then
+		PCCX_ETC="/etc/opt/pccx"
+		PCCX_LOG="/var/log/pccx"
+		PCCX_VAR="/var/opt/pccx"
+	fi
+	;;
+/opt/homebrew/Cellar/pccx/*/sbin/pccx)
+	pccx_homebrew_sbin="${PCCX%/*}"
+	pccx_homebrew_ver="${pccx_homebrew_sbin%/*}"
+	PCCX_LIBEXEC="$pccx_homebrew_ver/libexec"
+	PCCX_SHARE="$pccx_homebrew_ver/share"
+	if test $UID -eq 0; then
+		PCCX_ETC="$pccx_homebrew_ver/etc"
+		PCCX_LOG="/opt/homebrew/var/log/pccx"
+		PCCX_VAR="/opt/homebrew/var/lib/pccx"
+	fi
+	;;
+/usr/local/sbin/pccx)
+	PCCX_LIBEXEC="/usr/local/libexec/pccx"
+	PCCX_SHARE="/usr/local/share/pccx"
+	if test $UID -eq 0; then
+		PCCX_ETC="/etc/pccx"
+		PCCX_LOG="/var/log/pccx"
+		PCCX_VAR="/var/local/pccx"
+	fi
+	;;
+$HOME/.local/bin)
+	PCCX_LIBEXEC="$HOME/.local/libexec/pccx"
+	PCCX_SHARE="$XDG_DATA_HOME/pccx"
+	PCCX_VAR="$HOME/.local/state/pccx"
+	;;
+*)
+	PCCX_ETC="./etc"
+	PCCX_LIBEXEC="./libexec"
+	PCCX_LOG="./log"
+	PCCX_SHARE="./share"
+	PCCX_VAR="./data"
+	PCCX_KEY="./key.pem"
+	PCCX_FIXME="./fixme.txt"
+	;;
+esac
 
 : ${PCCX_ETC:=$XDG_CONFIG_HOME/pccx}
 : ${PCCX_LIBEXEC:?unspecified}
 : ${PCCX_LOG:=$XDG_CACHE_HOME/pccx}
 : ${PCCX_SHARE:?unspecified}
 : ${PCCX_VAR:=$XDG_STATE_HOME/pccx}
+
+if test -z "$PCCX_KEY"; then
+	if test -e /run/secrets/key; then
+		PCCX_KEY=/run/secrets/key
+	else
+		PCCX_KEY=$PCCX_VAR/key.pem
+	fi
+fi
+
+if test -z "$PCCX_FIXME"; then
+	if test -e /run/secrets/fixme; then
+		PCCX_KEY=/run/secrets/fixme
+	else
+		PCCX_KEY=$PCCX_VAR/fixme.txt
+	fi
+fi
 
 . $PCCX_SHARE/pccx.sh
 pccx $@

@@ -13,16 +13,16 @@ pccx merge /home/scripts/microservice/yaml-combiner \
 
 pccx trace PLATINAEXECUTOR
 
-PGPASSWORD="$POSTGRES_PASSWORD" psql \
+PGPASSWORD="$postgres_password" psql \
         -U "$POSTGRES_USER" \
         -h "$HOST_POSTGRES" \
         -e "$DB_NAME_POSTGRES" \
         -f /home/scripts/db/init.sql \
         -v "role=$DB_USER_PLATINAEXECUTOR" \
-        -v "passwd=$DB_PASSWORD_PLATINAEXECUTOR" \
+        -v "passwd=$platinaexecutor_db_password" \
         -v "db=$DB_NAME_PLATINAEXECUTOR" \
         -v "dbschema=$DB_SCHEMA_PLATINAEXECUTOR"
-PGPASSWORD="$DB_PASSWORD_PLATINAEXECUTOR" psql \
+PGPASSWORD="$platinaexecutor_db_password" psql \
         -U "$DB_USER_PLATINAEXECUTOR" \
         -h "$HOST_POSTGRES" \
         -e "$DB_NAME_PLATINAEXECUTOR" \
@@ -36,9 +36,9 @@ pccx exec PLATINAEXECUTOR /home/platina-executor \
 	--dbHost "$HOST_POSTGRES" \
 	--dbName "$DB_NAME_PLATINAEXECUTOR" \
 	--dbUsername "$DB_USER_PLATINAEXECUTOR" \
-	--dbPassword "$DB_PASSWORD_PLATINAEXECUTOR" \
+	--dbPassword "$platinaexecutor_db_password" \
 	--phAccessKey "$PHONEHOME_ACCESS_KEY" \
-	--phSecretKey "$PHONEHOME_SECRET_KEY" \
+	--phSecretKey "$phonehome_secret_key" \
 	--useHostnameAsAddress \
 	--useHostnameAsName \
 	--registryAddress "$HOST_APIREGISTRY" \

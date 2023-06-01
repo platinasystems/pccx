@@ -5,6 +5,13 @@ set -Eeo pipefail
 
 . /usr/share/pccx/rc.sh
 
+export POSTGRES_PASSWORD=$postgres_password
+export POSTGRES_USER
+export DB_NAME_POSTGRES="$POSTGRES_USER"
+export POSTGRES_HOST_AUTH_METHOD=${POSTGRES_HOST_AUTH_METHOD:-md5}
+test -z "$POSTGRES_INITDB_ARGS" ||
+	export POSTGRES_INITDB_ARGS
+
 pccx trace POSTGRES
 
 : ${PGDATA:=/var/lib/postgresql/data}
@@ -20,28 +27,6 @@ chown -R postgres:postgres \
 	/var/lib/postgresql/wals \
 	/var/lib/postgresql/backup \
 	/var/lib/postgresql/logs
-
-# usage: file_env VAR [DEFAULT]
-#    ie: file_env 'DB_PASSWORD_XYZ' 'example'
-# (will allow for "$DB_PASSWORD_XYZ_FILE" to fill in the value of
-#  "$DB_PASSWORD_XYZ" from a file, especially for Docker's secrets feature)
-file_env() {
-	local var="$1"
-	local fileVar="${var}_FILE"
-	local def="${2:-}"
-	if [ "${!var:-}" ] && [ "${!fileVar:-}" ]; then
-		echo >&2 "error: both $var and $fileVar are set (but are exclusive)"
-		exit 1
-	fi
-	local val="$def"
-	if [ "${!var:-}" ]; then
-		val="${!var}"
-	elif [ "${!fileVar:-}" ]; then
-		val="$(< "${!fileVar}")"
-	fi
-	export "$var"="$val"
-	unset "$fileVar"
-}
 
 # check to see if this file is being run or sourced from another script
 _is_sourced() {
@@ -218,14 +203,6 @@ docker_setup_db() {
 # Loads various settings that are used elsewhere in the script
 # This should be called before any other functions
 docker_setup_env() {
-	file_env 'POSTGRES_PASSWORD'
-
-	file_env 'POSTGRES_USER' 'postgres'
-	file_env 'DB_NAME_POSTGRES' "$POSTGRES_USER"
-	file_env 'POSTGRES_INITDB_ARGS'
-	# default authentication method is md5
-	: "${POSTGRES_HOST_AUTH_METHOD:=md5}"
-
 	declare -g DATABASE_ALREADY_EXISTS
 	# look specifically for PG_VERSION, as it is expected in the DB dir
 	if [ -s "$PGDATA/PG_VERSION" ]; then

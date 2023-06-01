@@ -1,7 +1,5 @@
 #!/bin/sh
 
-set -e
-
 . /usr/share/pccx/rc.sh
 
 pccx wait postgres
@@ -9,6 +7,7 @@ pccx wait service $HOST_APIREGISTRY $PORT_APIREGISTRY
 pccx wait service $HOST_PCCSERVER $PORT_PCCSERVER
 
 pccx trace SECURITY
+set -x
 
 pccx merge /home/scripts/microservice/yaml-combiner-alpine \
 	/home/conf/default.yml /usr/share/pccx/${0##*/}.yml /run/config.yml
@@ -16,23 +15,23 @@ pccx merge /home/scripts/microservice/yaml-combiner-alpine \
 SECURITY_ADMIN_PASSWD_HASH=$(java -cp security-jwt-*.jar \
 	-Dloader.main=com.auctacognitio.security.key.KeyGeneratorTool \
 	org.springframework.boot.loader.PropertiesLauncher \
-	$SECURITY_ADMIN_PASSWORD)
+	"$security_admin_password")
 
-PGPASSWORD=$POSTGRES_PASSWORD psql \
+PGPASSWORD="$postgres_password" psql \
         -U "$POSTGRES_USER" \
         -h "$HOST_POSTGRES" \
         -e "$DB_NAME_POSTGRES" \
         -f /home/scripts/db/init.sql \
         -v "role=$DB_USER_SECURITY" \
-        -v "passwd=$DB_PASSWORD_SECURITY" \
+        -v "passwd=$security_db_password" \
         -v "db=$DB_NAME_SECURITY" \
         -v "dbschema=$DB_SCHEMA_SECURITY"
-PGPASSWORD="$DB_PASSWORD_SECURITY" psql \
+PGPASSWORD="$security_db_password" psql \
         -U "$DB_USER_SECURITY" \
         -h "$HOST_POSTGRES" \
         -e "$DB_NAME_SECURITY" \
         -f /home/scripts/db/schema.sql
-PGPASSWORD="$POSTGRES_PASSWORD" psql \
+PGPASSWORD="$postgres_password" psql \
         -U "$POSTGRES_USER" \
         -h "$HOST_POSTGRES" \
         -e "$DB_NAME_SECURITY" \
@@ -40,13 +39,13 @@ PGPASSWORD="$POSTGRES_PASSWORD" psql \
 	-v "pccdbHost=$HOST_POSTGRES" \
 	-v "pccdbPort=$PORT_POSTGRES" \
 	-v "pccdbUser=$DB_USER_PCC" \
-	-v "pccdbPassword=$DB_PASSWORD_PCC" \
+	-v "pccdbPassword=$pcc_db_password" \
 	-v "foreignSchema=$SECURITY_FOREIGN_SCHEMA" \
 	-v "foreignTables=$SECURITY_FOREIGN_TABLES" \
 	-v "dbUser=$DB_USER_SECURITY" \
 	-v "adminUser=$POSTGRES_USER" \
 	-v "platinamonitorDbUser=$DB_USER_PLATINAMONITOR" \
-	-v "platinamonitorDbPassword=$DB_PASSWORD_PLATINAMONITOR" \
+	-v "platinamonitorDbPassword=$platinamonitor_db_password" \
 	-v "serverAdminHash=$SECURITY_ADMIN_PASSWD_HASH" \
         -f /home/scripts/db/post-init.sql
 
@@ -54,7 +53,7 @@ pccx exec SECURITY java \
 	-D"eureka.client.service-url.defaultZone=$URI_EUREKA" \
 	-D"spring.cloud.config.failFast=false" \
 	-D"spring.config.location=/run/config.yml" \
-	-D"spring.datasource.password=$DB_PASSWORD_SECURITY" \
+	-D"spring.datasource.password=$security_db_password" \
 	-D"spring.datasource.url=jdbc:postgresql://$HOST_POSTGRES/$DB_NAME_SECURITY" \
 	-D"spring.datasource.username=$DB_USER_SECURITY" \
 	-D"spring.profiles.active=docker" \

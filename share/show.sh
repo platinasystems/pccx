@@ -3,13 +3,14 @@ pccx_show() {
 	eval pccx_show_$@
 }
 
-pccx_show_files() {
+pccx_show_paths() {
 	cat <<-EOF
-		$PCCX
-		$PCCX_ETC
-		$PCCX_LIBEXEC
-		$PCCX_LOG
-		$PCCX_SHARE
-		$PCCX_VAR
+		bin	$PCCX
+		etc	$PCCX_ETC
+		libexec	$PCCX_LIBEXEC
+		log	$PCCX_LOG
+		share	$PCCX_SHARE
+		var	$PCCX_VAR
+		key	$PCCX_KEY
 	EOF
 }

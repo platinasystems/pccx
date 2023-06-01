@@ -7,6 +7,7 @@ set -e
 : ${PCCX_LOG:=/var/log/pccx}
 : ${PCCX_SHARE:=/usr/share/pccx}
 : ${PCCX_VAR:=/var/lib/pccx}
+: ${PCCX_KEY:=/run/secrets/key}
 
 . /usr/share/debconf/confmodule
 . ${PCCX_SHARE}/pccx.sh
@@ -15,8 +16,9 @@ case "$1" in
 remove)	rm -rf $PCCX_ETC $PCCX_LOG $PCCX_VAR
 	;;
 upgrade)
-	pccx compose deconfigure $PCCX_SHARE/default.env \
-		$PCCX_ETC/docker-compose.env 
+	pccx file filter $PCCX_ETC/docker-compose.env sort
+	pccx file filter $PCCX_ETC/docker-compose.env \
+		comm -13 $PCCX_SHARE/default.env -
 	;;
 failed-upgrade)
 	# unwind `old-prerm upgrade` failure
@@ -24,7 +26,7 @@ failed-upgrade)
 deconfigure)
 	;;
 *)
-	echo ${0##*/}: \`$1\': unkown >&2
+	echo ${0##*/}: \`$1\': unknown >&2
 	exit 1
 	;;
 esac

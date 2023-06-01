@@ -5,7 +5,7 @@ set -e
 . /usr/share/pccx/rc.sh
 
 export MINIO_ROOT_USER
-export MINIO_ROOT_PASSWORD
+export MINIO_ROOT_PASSWORD=$minio_password
 export MINIO_VOLUMES
 export MINIO_PORT
 export MINIO_ITERATIONS
